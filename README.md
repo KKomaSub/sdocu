@@ -6,7 +6,7 @@ Cloudflare Pages로 배포하는 스도쿠 게임입니다. 일반 모드와 타
 
 1. Cloudflare Workers & Pages에서 **Create application → Pages → Connect to Git**을 선택합니다.
 2. GitHub 저장소 `KKomaSub/sdocu`를 연결하고 배포 브랜치는 `main`으로 지정합니다.
-3. 프레임워크 프리셋은 `None`, 빌드 명령은 **비워 둡니다**. **빌드 출력 디렉터리는 `.`** 입니다.
+3. 프레임워크 프리셋은 `None`, 빌드 명령은 **비워 둡니다**. **빌드 출력 디렉터리는 `public`** 입니다.
 4. Cloudflare 계정에서 D1 데이터베이스 `sdocu_match`를 한 개 생성합니다.
 5. Pages 프로젝트 **Settings → Bindings → Add → D1 database**에서 바인딩 이름을 반드시 `MATCH_DB`로 지정하고 `sdocu_match`를 선택합니다.
 6. 프로젝트를 **다시 배포**합니다. API는 `https://<프로젝트>.pages.dev/api/match?health=1`에서 확인할 수 있습니다.
@@ -17,7 +17,8 @@ Cloudflare Pages로 배포하는 스도쿠 게임입니다. 일반 모드와 타
 
 ## 주요 경로
 
-- `index.html` : 스도쿠 웹 게임
+- `public/index.html` : 스도쿠 웹 게임
+- `public/assets/matchmaking.js` : 랜덤 매칭 브라우저 연결 코드
 - `functions/api/match.js` : Pages Functions 랜덤 매칭 백엔드
 - `GET /api/match?health=1` : D1 바인딩 및 API 점검
 - `POST /api/match` : 참가 및 취소 (`{ "action":"join", "peerId":"...", "name":"..." }`, `{ "action":"leave", "token":"..." }`)
