@@ -146,7 +146,7 @@ const makeId=n=>'b'+pad3(n);
 const toArr=s=>String(s).split('').map(Number);
 const setAt=(s,i,val)=>s.slice(0,i)+val+s.slice(i+1);
 const clampString=(v,len=81)=>typeof v==='string' && v.length===len && /^[0-9]+$/.test(v)?v:EMPTY;
-const defaultState=()=>({version:2,activeId:'b001',view:'play',selected:0,noteMode:false,showMistakes:true,filter:'all',progress:{},custom:[],history:[],editor:null,playMode:'normal',timeAttackRuns:{},timeAttackBests:{},pvpHistory:[]});
+const defaultState=()=>({version:2,activeId:'b001',view:'play',selected:0,noteMode:false,showMistakes:true,filter:'all',progress:{},custom:[],duelPuzzles:[],history:[],editor:null,playMode:'normal',timeAttackRuns:{},timeAttackBests:{},pvpHistory:[]});
 let storageReady=true;
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return defaultState();let value=JSON.parse(raw);return normalizeState(value)}catch(e){storageReady=false;return defaultState()}}
 function normalizeState(x){let d=defaultState();if(!x||typeof x!=='object')return d;
@@ -171,7 +171,16 @@ function normalizeState(x){let d=defaultState();if(!x||typeof x!=='object')retur
  }
  return d}
 const _legacyNormalizeState=normalizeState;
-normalizeState=function(input){let s=_legacyNormalizeState(input);s.pvpHistory=Array.isArray(input?.pvpHistory)?input.pvpHistory.filter(v=>v&&typeof v.id==='string'&&Number.isFinite(v.score)&&Number.isFinite(v.otherScore)).slice(0,30):[];return s};
+normalizeState=function(input){let s=_legacyNormalizeState(input);
+ s.pvpHistory=Array.isArray(input?.pvpHistory)?input.pvpHistory.filter(v=>v&&typeof v.id==='string'&&Number.isFinite(v.score)&&Number.isFinite(v.otherScore)).slice(0,60):[];
+ // Migrate duel continuation puzzles saved by older releases out of the user's editable puzzles.
+ const priorDuels=s.custom.filter(v=>v.id.startsWith('cduel_'));
+ s.custom=s.custom.filter(v=>!v.id.startsWith('cduel_'));
+ const savedDuels=Array.isArray(input?.duelPuzzles)?input.duelPuzzles:[];
+ const merged=new Map();
+ for(const v of [...priorDuels,...savedDuels])if(v&&typeof v.id==='string'&&v.id.startsWith('cduel_')&&typeof v.givens==='string'&&/^[0-9]{81}$/.test(v.givens))merged.set(v.id,{id:v.id,name:String(v.name||'대결 퍼즐').slice(0,45),givens:v.givens,createdAt:+v.createdAt||Date.now(),updatedAt:+v.updatedAt||Date.now()});
+ s.duelPuzzles=[...merged.values()].sort((a,b)=>b.updatedAt-a.updatedAt).slice(0,150);
+ return s};
 let state=loadState();
 let hintPreview=null;
 let solutionPreview=null;
@@ -179,7 +188,7 @@ let solutionPreview=null;
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));storageReady=true}catch(e){storageReady=false}updateStorageBadge()}
 function updateStorageBadge(){}
 const getLevel=n=>LEVELS.find(l=>n>=l.start&&n<=l.end);
-function getPuzzle(id){if(/^b\d{3}$/.test(id)){let n=+id.slice(1);if(n>=1&&n<=300){let v=BUILTINS[n-1],lv=getLevel(n);return {id,number:n,title:`${n}번 퍼즐`,givens:v[0],solution:v[1],level:lv.key,levelName:lv.name,builtin:true}}}let v=state.custom.find(p=>p.id===id);if(v)return {id,title:v.name,givens:v.givens,solution:null,level:'custom',levelName:'내 문제',builtin:false};return null}
+function getPuzzle(id){if(/^b\d{3}$/.test(id)){let n=+id.slice(1);if(n>=1&&n<=300){let v=BUILTINS[n-1],lv=getLevel(n);return {id,number:n,title:`${n}번 퍼즐`,givens:v[0],solution:v[1],level:lv.key,levelName:lv.name,builtin:true}}}let v=state.custom.find(p=>p.id===id);if(v)return {id,title:v.name,givens:v.givens,solution:null,level:'custom',levelName:'내 문제',builtin:false};v=state.duelPuzzles?.find(p=>p.id===id);if(v)return {id,title:v.name,givens:v.givens,solution:null,level:'pvp',levelName:'대결 퍼즐',builtin:false};return null}
 if(!getPuzzle(state.activeId))state.activeId='b001';
 if(!state.progress[state.activeId] && getPuzzle(state.activeId).givens[state.selected]!=='0'){let first=getPuzzle(state.activeId).givens.indexOf('0');if(first>=0)state.selected=first}
 if(state.view==='editor'&&!state.editor)state.view='play';
@@ -334,7 +343,7 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
  const top=timeMode()?`<div class="attack-hud"><div><div id="timeElapsed" class="attack-timer">${run?formatElapsed(elapsedAttack(run)):'00:00.00'}</div><div class="attack-meta">${run?.status==='running'?'시간 제한 없음   도전 진행 중':run?.status==='won'?'도전 성공':run?.status==='lost'?'목숨 소진   게임 종료':'도전을 시작하세요'}<br>최고 기록: ${best?formatElapsed(best.bestMs):'아직 없음'}</div></div><div>${heartHtml(run?.lives??3)}<div class="attack-meta" style="text-align:right">힌트 ${run?.hintsUsed||0}/${MAX_HINTS}   목숨 ${run?.lives??3}/3</div></div></div>`:'';
  const start=timeMode()&&!running?`<div class="attack-start ${lost?'attack-finished':''}"><strong>${won?'완주 성공!':lost?'💔 목숨이 모두 사라졌습니다.':run?.status==='abandoned'?'이전 도전을 중단했습니다.':'준비되면 시작하세요!'}</strong>${won?`완주 시간 ${formatElapsed(run.finalMs)}   최고 ${formatElapsed(best?.bestMs||run.finalMs)}`:lost?'광고 시청으로 부활하거나 새로운 도전을 시작할 수 있습니다.':'시간 제한은 없습니다. 틀린 숫자를 누르면 목숨이 1개씩 줄어듭니다.'}<button type="button" class="primary" data-action="time-start">${run?'새 기록에 도전하기':'타임어택 시작'}</button>${lost&&(run.adRevivesUsed||0)<2?`<button type="button" class="ad-offer" data-action="ad-revive">홍보 영상 보고 하트 1개 받기   ${run.adRevivesUsed||0}/2</button>`:''}</div>`:'';
  const hints=p.hintsUsed||0;
- $('#main').innerHTML=`<section class="panel">${tabs}<div class="puzzle-top"><div><span class="minititle">${puz.builtin?'기본 스도쿠':'직접 만든 스도쿠'}</span><h2 class="puzzle-title">${escapeHtml(puz.title)}</h2><div class="puzzle-sub">기본 숫자 ${81-total}개   빈칸 ${total}개${solved?'   완료됨':''}</div></div><span class="chip ${puz.level}">${puz.levelName}</span></div>${top}<div class="statusbar"><span>진행 상황 ${solved?'  해결 완료':''}</span><strong>${count} / ${total}</strong></div><div class="track"><div style="width:${total?100*count/total:100}%"></div></div>${gridHtml(puz,p,selected)}${hintPreview?.id===puz.id?`<div class="hint-panel" role="status"><div><strong>💡 ${Math.floor(hintPreview.index/9)+1}행 ${hintPreview.index%9+1}열   정답 ${hintPreview.digit}</strong><small>보라색 칸에 정답을 표시했습니다. 입력 내용은 바뀌지 않았어요.   남은 힌트 ${MAX_HINTS-hints}개</small></div><button type="button" data-action="hint-close" class="secondary compact">닫기</button></div>`:''}${start}<div class="toolrow"><button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>✎ 메모 ${state.noteMode?'켜짐':'꺼짐'}</button><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">오류 표시 ${state.showMistakes?'ON':'OFF'}</button><button class="tool push" data-action="reset-progress">${timeMode()?'↻ 다시 도전':'↻ 초기화'}</button></div>${keyboardHtml(state.noteMode,mask,disabled||!canEdit)}<div class="toolrow"><button class="tool" data-action="show-hint" ${(!canEdit||hints>=MAX_HINTS||solved)?'disabled':''}>힌트 ${hints}/${MAX_HINTS}</button>${!timeMode()?'<button class="tool" data-action="show-solution">정답 보기</button>':''}<button class="tool push" data-action="open-catalog">다른 문제 선택</button></div><p class="foot-hint">${timeMode()?'오답을 입력하면 목숨이 줄어듭니다. 시간 제한은 없고, 기록이 저장됩니다.':'칸을 누른 뒤 숫자를 선택하세요. 메모 모드에서는 후보 숫자를 여러 개 표시할 수 있습니다.'}<br>입력 내용과 메모는 자동 저장됩니다.</p>${puz.builtin?'':`<div class="notice">직접 만든 문제는 ${timeMode()?'유일한 정답을 가진 문제만 타임어택에 도전할 수 있습니다.':'가로 세로 3×3 규칙을 모두 만족하면 정답으로 인정합니다.'}</div>`}</section>`;
+ $('#main').innerHTML=`<section class="panel">${tabs}<div class="puzzle-top"><div><span class="minititle">${puz.level==='pvp'?'대결 이어 풀기':puz.builtin?'기본 스도쿠':'직접 만든 스도쿠'}</span><h2 class="puzzle-title">${escapeHtml(puz.title)}</h2><div class="puzzle-sub">기본 숫자 ${81-total}개   빈칸 ${total}개${solved?'   완료됨':''}</div></div><span class="chip ${puz.level}">${puz.levelName}</span></div>${top}<div class="statusbar"><span>진행 상황 ${solved?'  해결 완료':''}</span><strong>${count} / ${total}</strong></div><div class="track"><div style="width:${total?100*count/total:100}%"></div></div>${gridHtml(puz,p,selected)}${hintPreview?.id===puz.id?`<div class="hint-panel" role="status"><div><strong>💡 ${Math.floor(hintPreview.index/9)+1}행 ${hintPreview.index%9+1}열   정답 ${hintPreview.digit}</strong><small>보라색 칸에 정답을 표시했습니다. 입력 내용은 바뀌지 않았어요.   남은 힌트 ${MAX_HINTS-hints}개</small></div><button type="button" data-action="hint-close" class="secondary compact">닫기</button></div>`:''}${start}<div class="toolrow"><button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>✎ 메모 ${state.noteMode?'켜짐':'꺼짐'}</button><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">오류 표시 ${state.showMistakes?'ON':'OFF'}</button><button class="tool push" data-action="reset-progress">${timeMode()?'↻ 다시 도전':'↻ 초기화'}</button></div>${keyboardHtml(state.noteMode,mask,disabled||!canEdit)}<div class="toolrow"><button class="tool" data-action="show-hint" ${(!canEdit||hints>=MAX_HINTS||solved)?'disabled':''}>힌트 ${hints}/${MAX_HINTS}</button>${!timeMode()?'<button class="tool" data-action="show-solution">정답 보기</button>':''}<button class="tool push" data-action="open-catalog">다른 문제 선택</button></div><p class="foot-hint">${timeMode()?'오답을 입력하면 목숨이 줄어듭니다. 시간 제한은 없고, 기록이 저장됩니다.':'칸을 누른 뒤 숫자를 선택하세요. 메모 모드에서는 후보 숫자를 여러 개 표시할 수 있습니다.'}<br>입력 내용과 메모는 자동 저장됩니다.</p>${puz.builtin?'':`<div class="notice">직접 만든 문제는 ${timeMode()?'유일한 정답을 가진 문제만 타임어택에 도전할 수 있습니다.':'가로 세로 3×3 규칙을 모두 만족하면 정답으로 인정합니다.'}</div>`}</section>`;
  updateStopwatch();
 }
 function markCompleted(puz,p){let time=Date.now();p.done=true;p.completedAt=time;state.history=state.history.filter(v=>v.id!==puz.id);state.history.unshift({id:puz.id,title:puz.title,at:time,level:puz.level})}
@@ -370,7 +379,7 @@ function renderHistory(){
  const attacks=Object.entries(state.timeAttackBests).filter(([id,r])=>!!getPuzzle(id)).sort((a,b)=>b[1].at-a[1].at);
  const duels=[...(state.pvpHistory||[])].sort((a,b)=>b.at-a.at);
  const empty=(title,caption)=>`<div class="empty"><strong>${title}</strong>${caption}</div>`;
- const recentBody=recent.length?`<div class="history-list">${recent.map(v=>`<article class="history-item"><div><b>● ${escapeHtml(v.puz.title)}</b><span>${v.at?dateDisplay(v.at):'진행 중'} ${v.puz.builtin?v.puz.levelName:'내 문제'}</span></div><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(v.id)}">이어 풀기</button></article>`).join('')}</div>`:empty('진행 중인 문제가 없습니다','새 문제를 시작하면 여기에 표시됩니다.');
+ const recentBody=recent.length?`<div class="history-list">${recent.map(v=>`<article class="history-item"><div><b>● ${escapeHtml(v.puz.title)}</b><span>${v.at?dateDisplay(v.at):'진행 중'} ${v.puz.levelName}</span></div><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(v.id)}">이어 풀기</button></article>`).join('')}</div>`:empty('진행 중인 문제가 없습니다','새 문제를 시작하면 여기에 표시됩니다.');
  const normalBody=normal.length?`<div class="history-list">${normal.map(v=>{let exists=!!getPuzzle(v.id);return `<article class="history-item"><div><b>✓ ${escapeHtml(v.title)}</b><span>${dateDisplay(v.at)} ${v.level==='custom'?'내 문제':'기본 문제'}</span></div><button class="${exists?'secondary':'ghost'} compact" data-action="open-game" data-id="${escapeHtml(v.id)}" ${exists?'':'disabled'}>${exists?'다시 보기':'삭제됨'}</button></article>`}).join('')}</div>`:empty('아직 완료한 문제가 없습니다','문제를 모두 맞히면 기록됩니다.');
  const attackBody=attacks.length?`<div class="history-list">${attacks.map(([id,r])=>`<article class="history-item history-time-clear"><div><span class="history-gold-label">★ 타임어택 완료</span><b>${escapeHtml(getPuzzle(id)?.title||r.title)}</b><span>${dateDisplay(r.at)}</span></div><div class="history-time-result"><strong>${formatElapsed(r.bestMs)}</strong><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(id)}">다시 보기</button></div></article>`).join('')}</div>`:empty('타임어택 완료 기록이 없습니다','타임어택을 완주하면 여기에 표시됩니다.');
  const duelBody=duels.length?`<div class="history-list" data-history-list="duels">${duels.map((v,i)=>`<article class="history-item ${i>=3?'pvp-extra-entry':''}" ${i>=3?'hidden':''}><div><b class="${v.result==='승리'?'history-duel-win':v.result==='패배'?'history-duel-lose':''}">${escapeHtml(v.result)} ${escapeHtml(v.opponent)} 상대</b><span>${dateDisplay(v.at)} ${escapeHtml(PVP_LEVELS[v.level]?.name||'대결')} ${v.score} : ${v.otherScore}</span></div>${v.soloId&&getPuzzle(v.soloId)?`<button class="secondary compact" data-action="pvp-history-solo" data-id="${escapeHtml(v.soloId)}">이어 풀기</button>`:''}</article>`).join('')}${duels.length>3?'<button type="button" class="history-more" data-action="history-more" aria-expanded="false">더보기</button>':''}</div>`:empty('대결 기록이 없습니다','대결이 종료되면 여기에 표시됩니다.');
@@ -503,8 +512,8 @@ function pvpShowOutcome(){const m=pvp.match;if(!m?.finished)return;const screen=
 function pvpHideOutcome(){$('#pvpOutcome').hidden=true;$('#pvpConfetti').innerHTML=''}
 function pvpArchiveMatch(){const m=pvp.match;if(!m?.finished)return null;const idx=pvpLocalIdx(),me=m.players[idx],op=m.players[1-idx];const soloId='cduel_'+m.id;
  // This is the same generated puzzle, with the correct digits and notes from the duel.
- let existing=state.custom.find(v=>v.id===soloId);
- if(!existing){const now=Date.now();existing={id:soloId,name:`대결 퍼즐 ${PVP_LEVELS[m.level]?.name||''}`,givens:m.givens,createdAt:now,updatedAt:now};state.custom.unshift(existing)}
+ let existing=state.duelPuzzles?.find(v=>v.id===soloId);
+ if(!existing){const now=Date.now();existing={id:soloId,name:`대결 퍼즐 ${PVP_LEVELS[m.level]?.name||''}`,givens:m.givens,createdAt:now,updatedAt:now};state.duelPuzzles=state.duelPuzzles||[];state.duelPuzzles.unshift(existing)}
  if(!state.progress[soloId])state.progress[soloId]={answers:me.answers,notes:{...pvp.notes},done:!!me.done,completedAt:me.done?Date.now():0,updatedAt:Date.now(),hintsUsed:0};
  if(me.done&&!state.history.some(v=>v.id===soloId))state.history.unshift({id:soloId,title:existing.name,at:Date.now(),level:'pvp'});
  state.pvpHistory=state.pvpHistory||[];
@@ -603,6 +612,11 @@ function pvpLoadPeerJS(){
 }
 function pvpNewCode(){const a=new Uint16Array(1);crypto.getRandomValues(a);return String(a[0]%10000).padStart(4,'0')}
 function pvpCaptureName(){const e=$('#pvpNickname');if(e)pvp.name=e.value.trim().slice(0,20)||'플레이어'}
+function pvpReadHostSettings(){
+ const level=$('#pvpLevel')?.value||pvp.level,sec=Number($('#pvpTurnSeconds')?.value??pvp.turnSeconds),min=Number($('#pvpMatchMinutes')?.value??pvp.matchMinutes),hearts=Number($('#pvpHearts')?.value??pvp.hearts);
+ if(!PVP_LEVELS[level]||!Number.isInteger(sec)||sec<5||sec>120||!Number.isInteger(min)||min<1||min>120||!Number.isInteger(hearts)||hearts<1||hearts>10){notify('입력 시간 5~120초, 전체 경기 1~120분, 하트 1~10개로 설정하세요.');return false}
+ pvp.level=level;pvp.turnSeconds=sec;pvp.matchMinutes=min;pvp.hearts=hearts;return true
+}
 function pvpBindChannel(dc){
  if(pvp.dc&&pvp.dc!==dc){try{dc.close()}catch(e){}return}
  pvp.dc=dc;
@@ -616,7 +630,8 @@ function pvpBindChannel(dc){
 function pvpSend(payload){if(pvp.dc?.open){try{pvp.dc.send(JSON.stringify(payload));return true}catch(e){pvpStatus('메시지 전송에 실패했습니다.');return false}}return false}
 function pvpWatchConnection(peer){setTimeout(()=>{if(pvp.peer===peer&&pvp.conn==='connecting')pvpStatus('연결이 지연되고 있습니다. 네트워크에 따라 TURN 서버가 필요할 수 있습니다.')},16000)}
 async function pvpHostCreate(){
- if(pvp.creating)return;
+ if(pvp.creating||pvp.role==='host')return;
+ if(!pvpReadHostSettings())return;
  pvpCaptureName();pvpConnectionClose();pvp.role='host';pvp.creating=true;pvp.conn='connecting';pvpStatus('4자리 초대 코드 등록 중…');
  try{const Peer=await pvpLoadPeerJS();if(pvp.role!=='host'||!pvp.creating)return;
   let tries=0;
@@ -671,9 +686,10 @@ function pvpReceived(message){if(!message||typeof message!=='object')return;
   const nowOpponent=m.players[1-idx].correct;
   pvp.match=m;pvp.pendingMove=false;pvp.clockOffset=(+message.hostNow||Date.now())-Date.now();
   if(typeof message.event==='string')pvp.lastEvent=message.event.slice(0,130);
-  if(oldLives>m.players[idx].lives)pvp.lastLifeLoss={who:idx,life:oldLives,at:Date.now()};
+  const tookHit=oldLives>m.players[idx].lives;
+  if(tookHit)pvp.lastLifeLoss={who:idx,life:oldLives,at:Date.now()};
   pvpCheckMilestones(oldOpponent,nowOpponent);
-  if(m.finished)pvpSaveResult();pvpRender();if(m.finished)pvpShowOutcome();return;
+  if(m.finished)pvpSaveResult();pvpRender();if(tookHit)pvpAnimateWrongCell(pvp.selected);if(m.finished)pvpShowOutcome();return;
  }
  if(message.type==='forfeit'&&pvp.match&&!pvp.match.finished&&message.id===pvp.match.id){
   const winner=pvpLocalIdx();if(pvp.role==='host')pvpFinishMatch('상대가 나갔습니다.',winner);else pvpFinishedLocal('상대가 나갔습니다.',winner);return;
@@ -703,25 +719,27 @@ function pvpHostTick(){const m=pvp.match;if(!m||m.finished||pvp.role!=='host')re
   if(now>=p.deadline){const missed=Math.max(1,Math.floor((now-p.deadline)/m.turnMs)+1);p.timeouts+=missed;p.score-=missed*6;p.deadline+=missed*m.turnMs;changed=true;events.push(`${p.name} 시간 초과`)}
  }
  if(changed){pvp.lastEvent=events.join(' ');pvpBroadcast(pvp.lastEvent)}
- if(m.players.every(p=>p.done))pvpFinishMatch('모두 퍼즐 완성');
+ const firstComplete=m.players.findIndex(p=>p.done);if(firstComplete!==-1)pvpFinishMatch('퍼즐 먼저 완성',firstComplete);
 }
 function pvpHostMove(who,index,digit){const m=pvp.match;
  if(!m||m.finished||pvp.role!=='host'||!Number.isInteger(who)||who<0||who>1||!Number.isInteger(index)||index<0||index>=81||!Number.isInteger(digit)||digit<1||digit>9)return;
  pvpHostTick();if(m.finished)return;const p=m.players[who],now=Date.now();if(!p||p.done||p.lives===0||m.givens[index]!=='0'||p.answers[index]!=='0')return;
  const beforeOther=m.players[pvpOtherIdx()].correct;
  const remaining=Math.max(0,p.deadline-now),speedBonus=Math.min(10,Math.max(0,Math.floor(10*remaining/m.turnMs)));
- if(String(digit)===pvp.solution[index]){
+ const correct=String(digit)===pvp.solution[index];
+ if(correct){
   const delta=10+speedBonus;p.answers=setAt(p.answers,index,String(digit));p.mistakes=setAt(p.mistakes||EMPTY,index,'0');p.correct++;p.score+=delta;pvp.lastEvent=`${p.name} 정답 ${delta}점`;
-  if(p.correct>=m.givens.split('').filter(c=>c==='0').length){p.done=true;p.score+=30;pvp.lastEvent='퍼즐 완성'}
+  if(p.correct>=m.givens.split('').filter(c=>c==='0').length){p.done=true;p.score+=30;pvp.lastEvent='퍼즐 먼저 완성'}
  }else{
   p.mistakes=setAt(p.mistakes||EMPTY,index,String(digit));p.wrong++;const previousLives=p.lives;p.lives=Math.max(0,p.lives-1);p.score-=17;
-  pvp.lastLifeLoss={who,life:previousLives,at:now};pvp.lastHit=who===pvpLocalIdx()?index:-1;pvp.lastEvent=`${p.name} 오답 하트 ${p.lives}개`;
+  pvp.lastLifeLoss={who,life:previousLives,at:now};pvp.lastEvent=`${p.name} 오답 하트 ${p.lives}개`;
  }
  p.deadline=now+m.turnMs;
  if(who===pvpOtherIdx())pvpCheckMilestones(beforeOther,p.correct);
+ if(p.done){pvpFinishMatch('퍼즐 먼저 완성',who);return}
  if(p.lives===0){pvpFinishMatch('하트 소진',1-who);return}
- if(m.players.every(x=>x.done)){pvpFinishMatch('모두 퍼즐 완성');return}
- pvpBroadcast(pvp.lastEvent)
+ pvpBroadcast(pvp.lastEvent);
+ if(!correct&&who===pvpLocalIdx())pvpAnimateWrongCell(index)
 }
 function pvpFinishMatch(reason,forcedWinner=null){const m=pvp.match;if(!m||m.finished||pvp.role!=='host')return;
  m.finished=true;m.reason=reason;
@@ -743,8 +761,9 @@ function pvpSubmitDigit(digit){const m=pvp.match;if(!m||m.finished)return;let i=
  if(pvp.role==='host')pvpHostMove(0,i,digit);else if(!pvp.pendingMove&&pvpSend({type:'move',index:i,digit})){pvp.pendingMove=true;pvp.lastEvent='입력 결과를 확인하는 중입니다…';}}
 function pvpFmtTime(ms){let v=Math.ceil(Math.max(0,ms)/1000),min=Math.floor(v/60),sec=v%60;return `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
 function pvpClocks(){if(state.view!=='pvp'||!pvp.match)return;let m=pvp.match,idx=pvpLocalIdx(),p=m.players[idx],now=Date.now()+(pvp.role==='guest'?pvp.clockOffset:0),left=m.finished?0:m.endAt-now,turn=m.finished||p.done||p.lives===0?0:p.deadline-now;const e=$('#pvpMatchTime'),t=$('#pvpTurnTime'),b=$('#pvpTurnProgress');if(e)e.textContent=pvpFmtTime(left);if(t)t.textContent=pvpFmtTime(turn);if(b)b.style.width=`${Math.max(0,Math.min(100,100*turn/m.turnMs))}%`;}
+function pvpAnimateWrongCell(index){const cell=$(`#main .pvp-board-wrap .cell[data-index="${index}"]`);if(!cell||!cell.classList.contains('pvp-wrong-entry'))return;cell.classList.remove('pvp-wrong');void cell.offsetWidth;cell.classList.add('pvp-wrong');setTimeout(()=>cell.classList.remove('pvp-wrong'),480)}
 function pvpBoardHtml(){let m=pvp.match,idx=pvpLocalIdx(),p=m.players[idx],draft=p.mistakes||EMPTY,grid=Array.from({length:81},(_,i)=>m.givens[i]!=='0'?m.givens[i]:p.answers[i]!=='0'?p.answers[i]:draft[i]).join('');let sr=Math.floor(pvp.selected/9),sc=pvp.selected%9;
- let cells=Array.from({length:81},(_,i)=>{let r=Math.floor(i/9),c=i%9,v=grid[i],giv=m.givens[i]!=='0',wrong=!giv&&p.answers[i]==='0'&&draft[i]!=='0',classes='cell'+(giv?' given':'')+(i===pvp.selected?' pvp-selected':r===sr||c===sc||Math.floor(r/3)===Math.floor(sr/3)&&Math.floor(c/3)===Math.floor(sc/3)?' pvp-peer':'')+(i===pvp.lastHit?' pvp-wrong':'')+(wrong?' pvp-wrong-entry':v!=='0'&&!giv?' pvp-correct':'');let content=v!=='0'?`<span class="digit">${v}</span>`:(pvp.notes[i]?`<span class="notes-grid">${Array.from({length:9},(_,j)=>`<i>${pvp.notes[i]&(1<<j)?j+1:''}</i>`).join('')}</span>`:'');return `<button type="button" class="${classes}" data-action="pvp-cell" data-index="${i}" aria-pressed="${i===pvp.selected}" aria-label="${r+1}행 ${c+1}열 ${giv?'고정 숫자 ':wrong?'오답 숫자 ':v==='0'?'빈칸':'입력 숫자 '}${v==='0'?'':v}" ${p.done||p.lives===0||m.finished?'disabled':''}>${content}</button>`}).join('');return `<div class="board" role="group" aria-label="2인 대결 스도쿠">${cells}</div>`}
+ let cells=Array.from({length:81},(_,i)=>{let r=Math.floor(i/9),c=i%9,v=grid[i],giv=m.givens[i]!=='0',wrong=!giv&&p.answers[i]==='0'&&draft[i]!=='0',classes='cell'+(giv?' given':'')+(i===pvp.selected?' pvp-selected':r===sr||c===sc||Math.floor(r/3)===Math.floor(sr/3)&&Math.floor(c/3)===Math.floor(sc/3)?' pvp-peer':'')+(wrong?' pvp-wrong-entry':v!=='0'&&!giv?' pvp-correct':'');let content=v!=='0'?`<span class="digit">${v}</span>`:(pvp.notes[i]?`<span class="notes-grid">${Array.from({length:9},(_,j)=>`<i>${pvp.notes[i]&(1<<j)?j+1:''}</i>`).join('')}</span>`:'');return `<button type="button" class="${classes}" data-action="pvp-cell" data-index="${i}" aria-pressed="${i===pvp.selected}" aria-label="${r+1}행 ${c+1}열 ${giv?'고정 숫자 ':wrong?'오답 숫자 ':v==='0'?'빈칸':'입력 숫자 '}${v==='0'?'':v}" ${p.done||p.lives===0||m.finished?'disabled':''}>${content}</button>`}).join('');return `<div class="board" role="group" aria-label="2인 대결 스도쿠">${cells}</div>`}
 function pvpResultHtml(){const m=pvp.match;if(!m?.finished)return '';
  const outcome=pvpGameOutcome(),mine=m.players[pvpLocalIdx()],other=m.players[pvpOtherIdx()],title=outcome==='win'?'승리':outcome==='lose'?'패배':'무승부';
  return `<div class="pvp-finished ${outcome==='lose'?'lose':outcome==='tie'?'tie':''}"><strong>${title}</strong>${escapeHtml(m.reason||'경기 종료')}<div>내 점수 ${mine.score}점   상대 ${other.score}점</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">일반 모드에서 이어 풀기</button><button class="secondary" data-action="pvp-new">새 대결</button></div>`
@@ -760,13 +779,13 @@ function pvpRenderMatch(){const m=pvp.match,idx=pvpLocalIdx(),self=m.players[idx
 function pvpRenderLobby(){const host=pvp.role==='host',guest=pvp.role==='guest',connected=pvp.conn==='connected';
  const lvOptions=Object.entries(PVP_LEVELS).map(([key,c])=>`<option value="${key}" ${key===pvp.level?'selected':''}>${c.name}</option>`).join('');
  const mode=pvp.mode||'choice';let section='';
- if(mode==='friend')section=`<div class="pvp-step"><div class="pvp-connect-grid"><div class="pvp-connect-card"><strong>방 만들기</strong><button type="button" class="primary" data-action="pvp-create" ${pvp.creating?'disabled':''}>${pvp.creating?'준비 중':'방 만들기'}</button>${host&&pvp.roomCode?`<div id="pvpRoomDisplay" class="pvp-four-digit">${pvp.roomCode}</div><button class="secondary compact" data-action="pvp-copy-offer">코드 복사</button>${pvpShareURL()?`<div class="pvp-share-url"><input id="pvpShareURL" readonly value="${escapeHtml(pvpShareURL())}" aria-label="초대 링크"><button class="secondary compact" data-action="pvp-share">링크 복사</button></div>`:''}`:''}</div><div class="pvp-connect-card"><strong>코드로 입장</strong><input id="pvpRoomCode" type="text" inputmode="numeric" maxlength="4" class="pvp-code-input" value="${escapeHtml(pvp.joinCode)}" placeholder="0000"><button class="primary" data-action="pvp-join">입장하기</button></div></div></div>`;
+ if(mode==='friend')section=`${!host&&!guest?`<div class="pvp-step pvp-host-config"><h3>방 만들기 전 게임 설정</h3><div class="pvp-settings"><div><label class="field-label" for="pvpLevel">난이도</label><select class="text-input" id="pvpLevel">${lvOptions}</select></div><div><label class="field-label" for="pvpTurnSeconds">입력 제한시간 (초)</label><input class="text-input" id="pvpTurnSeconds" type="number" min="5" max="120" value="${pvp.turnSeconds}"></div><div><label class="field-label" for="pvpMatchMinutes">전체 경기 (분)</label><input class="text-input" id="pvpMatchMinutes" type="number" min="1" max="120" value="${pvp.matchMinutes}"></div><div><label class="field-label" for="pvpHearts">하트</label><input class="text-input" id="pvpHearts" type="number" min="1" max="10" value="${pvp.hearts}"></div></div><button type="button" class="primary pvp-start-btn" data-action="pvp-create" ${pvp.creating?'disabled':''}>${pvp.creating?'준비 중':'이 설정으로 방 만들기'}</button></div>`:''}<div class="pvp-step"><div class="pvp-connect-grid"><div class="pvp-connect-card"><strong>${host?'내 방':'친구 초대'}</strong>${host&&pvp.roomCode?`<div id="pvpRoomDisplay" class="pvp-four-digit">${pvp.roomCode}</div><button class="secondary compact" data-action="pvp-copy-offer">코드 복사</button>${pvpShareURL()?`<div class="pvp-share-url"><input id="pvpShareURL" readonly value="${escapeHtml(pvpShareURL())}" aria-label="초대 링크"><button class="secondary compact" data-action="pvp-share">링크 복사</button></div>`:''}`:'<p>위에서 규칙을 정한 뒤 방을 만들어 주세요.</p>'}</div><div class="pvp-connect-card"><strong>코드로 입장</strong><input id="pvpRoomCode" type="text" inputmode="numeric" maxlength="4" class="pvp-code-input" value="${escapeHtml(pvp.joinCode)}" placeholder="0000"><button class="primary" data-action="pvp-join">입장하기</button></div></div></div>${host?`<div class="pvp-step pvp-host-locked"><h3>확정된 경기 규칙</h3><p>${escapeHtml(PVP_LEVELS[pvp.level].name)} / 입력 ${pvp.turnSeconds}초 / 전체 ${pvp.matchMinutes}분 / 하트 ${pvp.hearts}개</p>${connected?'<button type="button" class="primary pvp-start-btn" data-action="pvp-start">대결 시작</button>':''}</div>`:''}`;
  if(mode==='random')section=`<div class="pvp-random-setup"><label for="pvpRandomEndpoint">매칭 서버 주소</label><input id="pvpRandomEndpoint" class="text-input" placeholder="https://your-worker.workers.dev" value="${escapeHtml(pvpRandomEndpoint())}"><div class="rowbtns" style="margin-top:8px"><button class="ghost compact" data-action="pvp-random-save">주소 저장</button></div><button class="primary" data-action="pvp-random-start" ${pvp.conn==='matching'||pvpRandom.starting?'disabled':''}>${pvp.conn==='matching'?'상대를 기다리는 중':'랜덤 매칭 시작'}</button>${pvp.role?`<button class="ghost compact" data-action="pvp-random-cancel" style="width:100%;margin-top:7px">대기 취소</button>`:''}<p class="pvp-help-light">랜덤 매칭 화면에서 기다리는 사람끼리만 연결합니다. 친구 초대 대기실과는 섞이지 않습니다.</p></div>`;
  return `<div class="pvp-hero"><span class="pvp-eyebrow">SUDOKU DUEL</span><h2>2인 대결</h2><p>친구와 대결하거나 대기 중인 상대를 찾아보세요.</p></div>
  <label class="field-label" for="pvpNickname">닉네임</label><input id="pvpNickname" class="text-input" maxlength="20" value="${escapeHtml(pvp.name)}">
  ${mode==='choice'?`<div class="pvp-choices"><button class="pvp-choice" data-action="pvp-mode-friend"><strong>친구와 대결</strong><small>4자리 코드 또는 링크</small></button><button class="pvp-choice" data-action="pvp-mode-random"><strong>랜덤 매칭</strong><small>대기 중인 플레이어 연결</small></button></div>`:`<div class="rowbtns" style="margin-top:12px"><button class="ghost compact" data-action="pvp-mode-back">다른 매칭 선택</button></div>${section}`}
  ${pvp.role?`<div class="pvp-simple-status" role="status">${escapeHtml(pvp.status||'연결을 준비 중입니다.')}</div>`:''}
- ${connected&&host?`<div class="pvp-step"><h3>방장 설정</h3><div class="pvp-settings"><div><label class="field-label" for="pvpLevel">난이도</label><select class="text-input" id="pvpLevel">${lvOptions}</select></div><div><label class="field-label" for="pvpTurnSeconds">입력 제한시간 (초)</label><input class="text-input" id="pvpTurnSeconds" type="number" min="5" max="120" value="${pvp.turnSeconds}"></div><div><label class="field-label" for="pvpMatchMinutes">전체 경기 (분)</label><input class="text-input" id="pvpMatchMinutes" type="number" min="1" max="120" value="${pvp.matchMinutes}"></div><div><label class="field-label" for="pvpHearts">하트</label><input class="text-input" id="pvpHearts" type="number" min="1" max="10" value="${pvp.hearts}"></div></div><button type="button" class="primary pvp-start-btn" data-action="pvp-start">대결 시작</button></div>`:''}
+ ${connected&&host&&mode==='random'?`<div class="pvp-step"><h3>방장 설정</h3><div class="pvp-settings"><div><label class="field-label" for="pvpLevel">난이도</label><select class="text-input" id="pvpLevel">${lvOptions}</select></div><div><label class="field-label" for="pvpTurnSeconds">입력 제한시간 (초)</label><input class="text-input" id="pvpTurnSeconds" type="number" min="5" max="120" value="${pvp.turnSeconds}"></div><div><label class="field-label" for="pvpMatchMinutes">전체 경기 (분)</label><input class="text-input" id="pvpMatchMinutes" type="number" min="1" max="120" value="${pvp.matchMinutes}"></div><div><label class="field-label" for="pvpHearts">하트</label><input class="text-input" id="pvpHearts" type="number" min="1" max="10" value="${pvp.hearts}"></div></div><button type="button" class="primary pvp-start-btn" data-action="pvp-start">대결 시작</button></div>`:''}
  ${connected&&guest?'<div class="pvp-simple-status">상대방이 대결을 시작할 때까지 기다립니다.</div>':''}`
 }
 function pvpRender(){if(state.view!=='pvp')return;navUpdate();$('#main').innerHTML=`<section class="panel">${pvp.match?pvpRenderMatch():pvpRenderLobby()}</section>`;pvpClocks();updateStorageBadge()}
