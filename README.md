@@ -6,7 +6,9 @@ Cloudflare Pages에 배포하는 스도쿠 게임입니다. 일반 모드, 타�
 
 ```
 index.html                 # 프론트엔드 메인 페이지 (최상위)
-assets/matchmaking.js       # 브라우저 랜덤 매칭 연결
+assets/matchmaking.js       # P2P matchmaking
+assets/i18n.js              # Automatic browser-language localization
+assets/keyboard-guide.js    # First desktop keyboard tutorial       # 브라우저 랜덤 매칭 연결
 _headers                    # 정적 자산 헤더
 functions/api/match.js      # Cloudflare Pages Functions 백엔드
 build.sh                    # 배포용 정적 파일을 dist에 복사
@@ -45,3 +47,9 @@ GitHub 저장소 `KKomaSub/sdocu`를 Cloudflare Pages의 Git 연동으로 연결
 - `GET /api/match?token=...` : 대기 및 연결 준비 상태 확인
 
 D1 데이터베이스 생성과 바인딩은 Cloudflare 계정에서 직접 설정해야 합니다.
+
+## Language and desktop keyboard controls
+
+The first page render uses the browser's preferred language. Korean browsers display Korean; English and other languages fall back to English. The page is localized before becoming visible, so Korean text does not flash on English browsers.
+
+On a desktop or laptop, the first Sudoku board displays an illustrated, one-time tutorial for arrow keys, number keys and the / notes toggle. Its dismissal is stored locally. Mobile devices skip the tutorial.
