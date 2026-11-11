@@ -319,7 +319,7 @@ function loseTimeAttackLife(index){const run=runOf(state.activeId),puz=getPuzzle
  run.lives=Math.max(0,run.lives-1);if(!run.lives){run.status='lost';run.finishedAt=Date.now();run.finalMs=run.finishedAt-run.startedAt}
  persist();renderPlay();let boardCell=$(`#main .cell[data-index="${index}"]`);boardCell?.classList.add('hit-error');let hearts=$('#main .attack-hearts');hearts?.classList.add('damage-shake');hearts?.querySelector(`[data-life="${run.lives+1}"]`)?.classList.add('heart-lost');
  if(run.lives===0){setTimeout(()=>showGameOver(),400)}else notify(`오답! 목숨이 하나 줄었습니다. 남은 목숨 ${run.lives}개.`)}
-function showGameOver(){const run=runOf(state.activeId);if(!run||run.status!=='lost'||!timeMode())return;$('#gameOverDesc').textContent=window.SUDOKU_I18N?.translate(`${formatElapsed(elapsedAttack(run))} 동안 도전했어요. 목숨을 모두 잃었습니다. 광고 보상으로 최대 2번 부활할 수 있습니다.`)??'';$('#reviveRemain').textContent=`${run.adRevivesUsed||0}/2회 사용`;$('#reviveAdBtn').hidden=(run.adRevivesUsed||0)>=2;$('#gameOver').hidden=false}
+function showGameOver(){const run=runOf(state.activeId);if(!run||run.status!=='lost'||!timeMode())return;$('#gameOverDesc').textContent=window.SUDOKU_I18N?.translate(`${formatElapsed(elapsedAttack(run))} 동안 도전했어요. 목숨을 모두 잃었습니다. 광고 보상으로 최대 2번 부활할 수 있습니다.`)??'';$('#reviveRemain').textContent=window.SUDOKU_I18N?.translate(`${run.adRevivesUsed||0}/2회 사용`)??'';$('#reviveAdBtn').hidden=(run.adRevivesUsed||0)>=2;$('#gameOver').hidden=false}
 function endGameOver(){$('#gameOver').hidden=true}
 function heartHtml(lives){return `<span class="attack-hearts" aria-label="남은 목숨 ${lives}개">${Array.from({length:3},(_,i)=>`<svg data-life="${i+1}" viewBox="0 0 24 24" aria-hidden="true" class="${i<lives?'':'empty'}"><path d="M20.8 4.6a5.7 5.7 0 0 0-8.1 0L12 5.3l-.7-.7a5.7 5.7 0 0 0-8.1 8.1L12 21l8.8-8.3a5.7 5.7 0 0 0 0-8.1Z"/></svg>`).join('')}</span>`}
 
@@ -403,7 +403,7 @@ function renderHistory(){
  $('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h2 class="panel-title">완료 기록</h2><p class="panel-subtitle">진행 중인 문제와 모드별 결과</p></div></div><div class="history-accordion-list">${historyAccordion('recent','최근 풀던 문제',recent.length,recentBody,true)}${historyAccordion('completed','완료한 문제',normal.length,normalBody)}${historyAccordion('time','타임어택',attacks.length,attackBody)}${historyAccordion('pvp','대결 기록',duels.length,duelBody)}</div>${dataToolsHtml()}</section>`;
 }
 function dataToolsHtml(){return `<div class="data-tools"><h3>저장 데이터 백업</h3><p>저장은 현재 브라우저에 자동으로 이루어집니다. 기기를 바꾸거나 브라우저 데이터를 삭제할 경우를 대비해 백업 파일을 보관할 수 있어요.</p><div class="rowbtns"><button class="secondary compact" data-action="export-backup">백업 내보내기</button><button class="ghost compact" data-action="import-backup">백업 불러오기</button></div></div>`}
-function beginEditor(id){let p=id?state.custom.find(x=>x.id===id):null;if(id&&!p)return notify('문제를 찾을 수 없습니다.');state.editor=p?{id:p.id,name:p.name,givens:p.givens,selected:p.givens.indexOf('0')>=0?p.givens.indexOf('0'):0,difficulty:'medium'}:{id:null,name:`내 스도쿠 ${state.custom.length+1}`,givens:EMPTY,selected:0,difficulty:'medium'};state.view='editor';persist();render();window.scrollTo({top:0,behavior:'auto'})}
+function beginEditor(id){let p=id?state.custom.find(x=>x.id===id):null;if(id&&!p)return notify('문제를 찾을 수 없습니다.');state.editor=p?{id:p.id,name:p.name,givens:p.givens,selected:p.givens.indexOf('0')>=0?p.givens.indexOf('0'):0,difficulty:'medium'}:{id:null,name:`${window.SUDOKU_LANG==='en'?'My Sudoku':'내 스도쿠'} ${state.custom.length+1}`,givens:EMPTY,selected:0,difficulty:'medium'};state.view='editor';persist();render();window.scrollTo({top:0,behavior:'auto'})}
 function renderEditor(){if(!state.editor){state.view='custom';return renderCustom()}let d=state.editor,given=d.givens.split('').filter(x=>x!=='0').length,clash=conflicts(d.givens);let pseudo={givens:d.givens};
 $('#main').innerHTML=`<section class="panel"><div class="studio-head"><div><span class="minititle">${d.id?'기존 문제 수정':'새 문제 만들기'}</span><h2 class="panel-title">${d.id?'문제 편집':'직접 만들기'}</h2></div><button class="ghost compact" data-action="editor-back">내 문제 목록</button></div><div class="editor-setup"><div><label class="field-label" for="editorName">문제 이름</label><input id="editorName" class="text-input" maxlength="30" value="${escapeHtml(d.name)}" placeholder="예: 내가 만든 어려운 스도쿠" autocomplete="off"></div><div><label class="field-label" for="autoDifficulty">자동 생성 난이도</label><div class="editor-actions"><select class="text-input grow" id="autoDifficulty">${LEVELS.map(l=>`<option value="${l.key}" ${d.difficulty===l.key?'selected':''}>${l.name}</option>`).join('')}</select><button class="secondary" data-action="auto-generate" id="autoGenerateBtn">자동 생성</button></div></div></div><p class="studio-tip">원하는 칸을 선택하고 아래 숫자 버튼으로 <strong>고정 숫자</strong>를 넣으세요. 빈칸은 비워 두면 됩니다. 자동 생성 후 숫자를 수정할 수도 있습니다.</p><div class="statusbar"><span>고정 숫자 ${given}개 / 81칸</span><strong>${clash.size?'⚠ 중복 숫자 확인':'입력 내용 자동 저장'}</strong></div>${gridHtml(pseudo,{answers:EMPTY,notes:{}},d.selected,true)}${keyboardHtml(false,0,false)}<div class="studio-submit"><button class="ghost compact" data-action="editor-clear">전체 지우기</button><button class="secondary compact" data-action="editor-check">정답 개수 확인</button><button class="primary" data-action="editor-save">${d.id?'수정 저장하고 풀기':'저장하고 풀기'}</button></div><div class="notice ${clash.size?'warn':''}">직접 만든 문제는 고정 숫자끼리 충돌하면 저장할 수 없습니다. 정답이 여러 개 존재하는 문제도 저장할 수 있으며, 그런 문제는 스도쿠 규칙에 맞는 모든 완성판을 정답으로 처리합니다.</div></section>`}
 function editorNumber(v){if(!state.editor)return;let i=state.editor.selected;state.editor.givens=setAt(state.editor.givens,i,String(v));persist();renderEditor()}
@@ -501,7 +501,7 @@ const PVP_ID_PREFIX='sd-sudoku-rooms-v4-';
 const PVP_PEER_CDN='https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
 const PVP_ICE_SERVERS=[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}];
 let pvpPeerLoad=null;
-let pvp={peer:null,dc:null,role:null,conn:'idle',name:'플레이어',peerName:'상대',level:'medium',roomCode:'',joinCode:'',status:'',match:null,solution:null,selected:0,notes:{},noteMode:false,pendingMove:false,lastEvent:'',lastHit:-1,clockOffset:0,resultSaved:false,creating:false,turnSeconds:20,matchMinutes:11,hearts:3};
+let pvp={peer:null,dc:null,role:null,conn:'idle',name:(window.SUDOKU_LANG==='en'?'Player':'플레이어'),peerName:(window.SUDOKU_LANG==='en'?'Opponent':'상대'),level:'medium',roomCode:'',joinCode:'',status:'',match:null,solution:null,selected:0,notes:{},noteMode:false,pendingMove:false,lastEvent:'',lastHit:-1,clockOffset:0,resultSaved:false,creating:false,turnSeconds:20,matchMinutes:11,hearts:3};
 pvp.mode='choice';pvp.milestones=new Set();pvp.outcomeShown=null;pvp.lastLifeLoss=null;pvp.autoStartQueued=false;pvp.countdownPhase=null;
 // P2P multiplayer additions: notifications, results, private invites, optional random queue.
 const PVP_RANDOM_STORAGE='sudoku-random-matchmaker-url-v1';
@@ -612,7 +612,7 @@ function pvpConnectionClose(){pvpHideCountdown();pvp.autoStartQueued=false;
  if(peer)try{peer.destroy()}catch(e){}
  pvp.role=null;pvp.conn='idle';pvp.roomCode='';pvp.joinCode='';pvp.match=null;pvp.solution=null;
  pvp.creating=false;pvp.lastEvent='';pvp.notes={};pvp.selected=0;pvp.noteMode=false;pvp.pendingMove=false;
- pvp.resultSaved=false;pvp.outcomeShown=null;pvp.lastLifeLoss=null;pvp.milestones=new Set();pvp.peerName='상대';
+ pvp.resultSaved=false;pvp.outcomeShown=null;pvp.lastLifeLoss=null;pvp.milestones=new Set();pvp.peerName=window.SUDOKU_LANG==='en'?'Opponent':'상대';
  pvpRandom.autoStart=false;pvpHideOutcome();pvpStatus('');
 }
 function pvpLoadPeerJS(){
@@ -628,7 +628,7 @@ function pvpLoadPeerJS(){
  return pvpPeerLoad;
 }
 function pvpNewCode(){const a=new Uint16Array(1);crypto.getRandomValues(a);return String(a[0]%10000).padStart(4,'0')}
-function pvpCaptureName(){const e=$('#pvpNickname');if(e)pvp.name=e.value.trim().slice(0,20)||'플레이어'}
+function pvpCaptureName(){const e=$('#pvpNickname');if(e)pvp.name=e.value.trim().slice(0,20)||(window.SUDOKU_LANG==='en'?'Player':'플레이어')}
 function pvpReadHostSettings(){
  const level=$('#pvpLevel')?.value||pvp.level,sec=Number($('#pvpTurnSeconds')?.value??pvp.turnSeconds),min=Number($('#pvpMatchMinutes')?.value??pvp.matchMinutes),hearts=Number($('#pvpHearts')?.value??pvp.hearts);
  if(!PVP_LEVELS[level]||!Number.isInteger(sec)||sec<5||sec>120||!Number.isInteger(min)||min<1||min>120||!Number.isInteger(hearts)||hearts<1||hearts>10){notify('입력 시간 5~120초, 전체 경기 1~120분, 하트 1~10개로 설정하세요.');return false}
