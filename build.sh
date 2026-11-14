@@ -9,3 +9,5 @@ cp _headers dist/_headers
 cp assets/matchmaking.js dist/assets/matchmaking.js
 cp assets/i18n.js dist/assets/i18n.js
 cp assets/keyboard-guide.js dist/assets/keyboard-guide.js
+cp assets/multiplayer-core.js dist/assets/multiplayer-core.js
+cp assets/multiplayer-ui.js dist/assets/multiplayer-ui.js

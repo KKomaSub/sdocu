@@ -8,7 +8,9 @@ Cloudflare Pages에 배포하는 스도쿠 게임입니다. 일반 모드, 타�
 index.html                 # 프론트엔드 메인 페이지 (최상위)
 assets/matchmaking.js       # P2P matchmaking
 assets/i18n.js              # Automatic browser-language localization
-assets/keyboard-guide.js    # First desktop keyboard tutorial       # 브라우저 랜덤 매칭 연결
+assets/keyboard-guide.js    # First desktop keyboard tutorial
+assets/multiplayer-core.js  # 3/4-player friend rooms and real-time shared team state
+assets/multiplayer-ui.js    # Multiplayer lobby, board and results
 _headers                    # 정적 자산 헤더
 functions/api/match.js      # Cloudflare Pages Functions 백엔드
 build.sh                    # 배포용 정적 파일을 dist에 복사
@@ -53,3 +55,9 @@ D1 데이터베이스 생성과 바인딩은 Cloudflare 계정에서 직접 설�
 The first page render uses the browser's preferred language. Korean browsers display Korean; English and other languages fall back to English. The page is localized before becoming visible, so Korean text does not flash on English browsers.
 
 On a desktop or laptop, the first Sudoku board displays an illustrated, one-time tutorial for arrow keys, number keys and the / notes toggle. Its dismissal is stored locally. Mobile devices skip the tutorial.
+
+## 친구 대결: 다인전
+
+방 생성 전 대결 형식에서 2인 개인전(기존), 3인 개인전, 4인 개인전, 4인 2:2 팀전을 선택할 수 있습니다. 3~4인 대결은 모두 4자리 코드/초대 링크로 참가합니다. 2:2 팀은 4명이 모두 입장하면 자동으로 무작위 편성되며, 팀원 두 명이 동일한 스도쿠 판·정답·오답·점수·하트를 공유하고 동시에 풉니다. 모든 인원이 입장하면 3·2·1·START 카운트다운으로 자동 시작합니다. 먼저 완성하면 해당 개인 또는 팀이 승리합니다.
+
+**랜덤 매칭 대기열**(`/api/match`)은 기존처럼 2인 대결만 지원합니다. 다인전의 **팀 무작위 배정**은 친구 대결 모드에서 작동하며, 인터넷 자동 팀 매칭과는 다릅니다.

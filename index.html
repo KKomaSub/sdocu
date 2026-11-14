@@ -891,4 +891,4 @@ window.SUDOKU_KEYBOARD_GUIDE?.check();
 window.addEventListener('pagehide',()=>{if(pvp.match&&!pvp.match.finished)pvpSend({type:'forfeit',id:pvp.match.id,who:pvpLocalIdx()})});
 if(state.playMode==='time'&&runOf(state.activeId)?.status==='lost')setTimeout(showGameOver,150);
 setInterval(updateStopwatch,100);
-</script><script src="/assets/matchmaking.js"></script></body></html>
+</script><script src="/assets/matchmaking.js"></script><script src="/assets/multiplayer-core.js"></script><script src="/assets/multiplayer-ui.js"></script></body></html>
