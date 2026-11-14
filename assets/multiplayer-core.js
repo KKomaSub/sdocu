@@ -131,7 +131,9 @@ function multiMove(seat,index,digit){
  ||!Number.isInteger(seat)||seat<0||seat>=m.players.length||m.players[seat].left
  ||!Number.isInteger(index)||index<0||index>80||!Number.isInteger(digit)||digit<1||digit>9)return;
  multiTick();if(m.finished)return;
- const g=m.groups[m.players[seat].team];if(!g||g.done||g.lives===0||m.givens[index]!=='0'||g.answers[index]!=='0')return;
+ const g=m.groups[m.players[seat].team];if(!g||g.done||g.lives===0||m.givens[index]!=='0')return;
+ // Both teammates may submit the same cell at almost the same time: acknowledge without scoring twice.
+ if(g.answers[index]!=='0'){multiSnapshot();return}
  const now=Date.now(),speed=Math.max(0,Math.min(10,Math.floor(10*Math.max(0,g.deadline-now)/m.turnMs)));
  const correct=String(digit)===multi.solution[index];
  if(correct){g.answers=setAt(g.answers,index,String(digit));g.mistakes=setAt(g.mistakes,index,'0');g.score+=10+speed;g.correct++;if(g.correct>=m.givens.split('').filter(c=>c==='0').length){g.done=true;g.score+=30}}
@@ -160,6 +162,13 @@ function multiDrop(seat){
  const alive=m.groups.map((g,i)=>g.lives>0?i:-1).filter(i=>i>=0);
  if(alive.length===1)multiEnd(multiT('참가자 연결 종료','A player left'),alive[0]);else multiSnapshot(multiT('참가자 연결 종료','A player left'));
 }
+const multiOldFinishedLocal=pvpFinishedLocal;
+pvpFinishedLocal=function(reason,winner){
+ if(!multi.active||!pvp.match?.format)return multiOldFinishedLocal(reason,winner);
+ const m=pvp.match;if(!m||m.finished)return;
+ m.finished=true;m.reason=multiT('방장 연결 종료','Host disconnected');m.winner=null;
+ pvpSaveResult();if(state.view==='pvp')pvpRender();pvpShowOutcome();
+};
 const multiOldReceived=pvpReceived;
 pvpReceived=function(m){
  if((m?.type==='multi-lobby')&&pvp.role==='guest'){
