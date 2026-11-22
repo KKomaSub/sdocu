@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "스도쿠 메이트",
+  "short_name": "스도쿠 메이트",
+  "lang": "ko",
+  "description": "혼자 풀거나 친구 및 전 세계 플레이어와 대결하는 스도쿠",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f5fb",
+  "theme_color": "#f6f5fb",
+  "icons": [
+    { "src": "./assets/mate-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./assets/mate-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

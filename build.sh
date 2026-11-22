@@ -1,13 +1,8 @@
 #!/bin/sh
 set -eu
 
-# Keep Pages Functions in the repository root, outside the static output directory.
+# Pages Functions stay at the repository root, outside the static output.
 rm -rf dist
-mkdir -p dist/assets
-cp index.html dist/index.html
-cp _headers dist/_headers
-cp assets/matchmaking.js dist/assets/matchmaking.js
-cp assets/i18n.js dist/assets/i18n.js
-cp assets/keyboard-guide.js dist/assets/keyboard-guide.js
-cp assets/multiplayer-core.js dist/assets/multiplayer-core.js
-cp assets/multiplayer-ui.js dist/assets/multiplayer-ui.js
+mkdir -p dist
+cp index.html manifest.webmanifest _headers dist/
+cp -R assets dist/assets

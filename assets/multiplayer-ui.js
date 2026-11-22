@@ -1,23 +1,5 @@
 'use strict';
-/* Multiplayer UI and results. The original 2-player presentation is untouched. */
-const multiOldLobby=pvpRenderLobby;
-pvpRenderLobby=function(){
- let html=multiOldLobby();
- if(pvp.mode!=='friend')return html;
- if(!pvp.role){
-  const options=Object.entries(multiFormats).map(([id,f])=>'<option value="'+id+'" '+(pvp.format===id?'selected':'')+'>'+multiFormatTitle(id)+'</option>').join('');
-  const selector='<div class="multi-format"><label class="field-label" for="pvpFormat">'+multiT('대결 인원 및 방식','Players and mode')+'</label><select class="text-input" id="pvpFormat">'+options+'</select><small>'+multiT('팀전은 4명이 입장하면 팀을 무작위로 배정합니다.','2v2 teams are randomly assigned once all four players join.')+'</small></div>';
-  html=html.replace('<div class="pvp-settings">',selector+'<div class="pvp-settings">');
- }
- if(multi.active){
-  html=html.replace('<h2>2인 대결</h2>','<h2>'+multiFormatTitle(multi.format)+'</h2>');
-  const max=multiFormats[multi.format].count,people=multi.names.filter(Boolean).length;
-  const roster='<div class="multi-lobby-roster"><strong>'+multiT('참가자','Players')+' '+people+'/'+max+'</strong><div class="multi-roster-grid">'+Array.from({length:max},(_,i)=>'<span>'+(i+1)+'. '+escapeHtml(multi.names[i]||multiT('입장 대기','Waiting...'))+'</span>').join('')+'</div><p>'+multiT('모두 입장하면 3 · 2 · 1 · START 후 자동으로 시작합니다.','When all players join, the 3 · 2 · 1 · START countdown begins automatically.')+'</p></div>';
-  html+=roster;
-  if(multi.host)html=html.replace('확정된 경기 규칙</h3>','확정된 경기 규칙</h3><p><strong>'+multiFormatTitle(multi.format)+'</strong></p>');
- }
- return html;
-};
+/* Multiplayer board and results. */
 const multiOldBoard=pvpBoardHtml;
 pvpBoardHtml=function(){
  if(!multi.active||!pvp.match?.format)return multiOldBoard();
@@ -125,7 +107,7 @@ pvpLeaveMatch=function(){
    multiWire(pvp.dc,{type:'multi-forfeit'});m.finished=true;m.reason=multiT('대결에서 나갔습니다.','You left.');m.winner=null;pvpSaveResult();pvpRender();pvpShowOutcome();
   }
  }
- setTimeout(()=>pvpStopTransport(true),350);
+ const peer=pvp.peer;setTimeout(()=>{if(pvp.match===m&&pvp.peer===peer)pvpStopTransport(true)},350);
 };
 const multiOldSolo=pvpSoloContinue;
 pvpSoloContinue=function(id=null){
