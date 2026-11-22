@@ -10,7 +10,7 @@ const nicknameKey='sudoku-mate-nickname';
 const appRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
 const appWrite=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 const friendSetup={players:2,team:false,level:'medium',hearts:3,turnSeconds:20,matchMinutes:11,advanced:false};
-let appWaiting=null;
+let appWaiting;
 let waitingRequest=null;
 let nearby=false;
 let nearbyRequest=false;
@@ -169,17 +169,19 @@ function pvpRenderLobby(){
 function appUpdateLobby(){
  const count=appWaiting;
  document.querySelectorAll('[data-queue-count]').forEach(el=>{
-  const text=count===null?appText('대기 인원 확인 불가','Queue count unavailable'):
-   appText('매칭 대기 '+count.toLocaleString('ko-KR')+'명',count.toLocaleString('en-US')+' waiting');
+  const text=count===undefined?appText('대기 인원 확인 중','Checking queue'):
+   count===null?appText('대기 인원 확인 불가','Queue count unavailable'):
+    appText('매칭 대기 '+count.toLocaleString('ko-KR')+'명',count.toLocaleString('en-US')+' waiting');
   if(el.textContent!==text)el.textContent=text;
-  el.classList.toggle('is-live',count!==null);
+  el.classList.toggle('is-live',Number.isInteger(count));
  });
  const badge=$('#nearbyBadge');
  if(badge)badge.hidden=!nearby;
  $('.join-room')?.classList.toggle('nearby-room',nearby);
 }
 async function appRefreshWaiting(){
- if(document.hidden||!(state.view==='home'||state.view==='pvp'&&pvp.mode==='random')||!/^https?:$/.test(location.protocol))return;
+ if(document.hidden||!(state.view==='home'||state.view==='pvp'&&pvp.mode==='random'))return;
+ if(!/^https?:$/.test(location.protocol)){appWaiting=null;appUpdateLobby();return}
  if(waitingRequest)return waitingRequest;
  waitingRequest=(async()=>{
   try{
@@ -202,6 +204,7 @@ async function appNearbyLease(){
  if(!/^https?:$/.test(location.protocol)||nearbyWriting)return;
  const hosting=state.view==='pvp'&&pvp.mode==='friend'&&pvp.role==='host'&&pvp.conn==='waiting'&&pvp.roomCode&&!pvp.match;
  const code=hosting?pvp.roomCode:'';
+ if(!code&&!nearbyRoom)return;
  if(nearbyRoom?.code===code&&Date.now()-nearbyRefreshAt<12000)return;
  nearbyWriting=true;
  try{

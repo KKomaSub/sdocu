@@ -69,6 +69,8 @@ pvpRenderMatch=function(){
  if(!multi.active||!pvp.match?.format)return multiOldRenderMatch();
  const m=pvp.match,team=multiGroup(),me=m.groups[team],ready=!m.finished&&!pvpBeforeStart()&&me.lives>0&&!me.done;
  const total=m.givens.split('').filter(v=>v==='0').length;
+ const levelName=PVP_LEVELS[m.level]?.name||m.level;
+ const levelLabel=window.SUDOKU_I18N?.translate(levelName)??levelName;
  const scorecards=m.groups.map((g,i)=>{
   const names=m.players.filter(p=>p.team===i).map(p=>escapeHtml(p.name)).join(' + ');
   const label=m.format==='team4'?multiT('팀 ','Team ')+(i+1):names;
@@ -76,7 +78,7 @@ pvpRenderMatch=function(){
  }).join('');
  const teamInfo=m.format==='team4'?'<p class="multi-team-info">'+multiT('팀원 두 명이 같은 판과 정답·점수·하트를 공유하며 동시에 풀 수 있습니다.','Both teammates solve the same board at once, sharing answers, points and hearts.')+'</p>':'';
  const digits=Array.from({length:9},(_,i)=>'<button class="key" type="button" data-action="pvp-digit" data-digit="'+(i+1)+'" '+(ready?'':'disabled')+'>'+(i+1)+'</button>').join('');
- return '<div class="pvp-match-heading"><div><span class="minititle">'+multiFormatTitle(m.format)+'</span><h2>'+escapeHtml(PVP_LEVELS[m.level]?.name||m.level)+' '+multiT('스도쿠','Sudoku')+'</h2></div><span class="chip">'+(m.finished?multiT('대결 종료','Match over'):multiT('진행 중','In progress'))+'</span></div>'+
+ return '<div class="pvp-match-heading"><div><span class="minititle">'+multiFormatTitle(m.format)+'</span><h2>'+escapeHtml(levelLabel)+' '+multiT('스도쿠','Sudoku')+'</h2></div><span class="chip">'+(m.finished?multiT('대결 종료','Match over'):multiT('진행 중','In progress'))+'</span></div>'+
  '<div class="pvp-timers"><div class="pvp-timer-card"><span>'+multiT('남은 경기 시간','Match time left')+'</span><strong id="pvpMatchTime">00:00</strong></div><div class="pvp-timer-card move"><span>'+multiT('입력 제한','Move deadline')+'</span><strong id="pvpTurnTime">00:00</strong><div class="pvp-turnbar"><div id="pvpTurnProgress"></div></div></div></div>'+
  '<div class="multi-cards">'+scorecards+'</div>'+teamInfo+'<div class="pvp-board-wrap">'+pvpBoardHtml()+'</div>'+pvpResultHtml()+
  '<div class="pvp-numberpad">'+digits+'</div><div class="pvp-btnrow"><button class="tool" data-action="pvp-erase" '+(ready?'':'disabled')+'>'+multiT('지우기','Erase')+'</button><button class="tool '+(pvp.noteMode?'active':'')+'" data-action="pvp-note" '+(ready?'':'disabled')+'>'+multiT('메모','Notes')+' '+(pvp.noteMode?multiT('켜짐','On'):multiT('꺼짐','Off'))+'</button><button class="tool" data-action="pvp-leave">'+(m.finished?multiT('연결 종료','Disconnect'):multiT('나가기','Leave'))+'</button></div>';
