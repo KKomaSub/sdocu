@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f6f5fb"><title>스도쿠 메이트</title>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#fafbf9"><title>스도쿠 메이트</title>
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./assets/mate-192.png"><link rel="apple-touch-icon" href="./assets/mate-192.png">
 <script>(function(){const prefs=navigator.languages?.[0]||navigator.language||"en";const locale=/^ko(?:-|$)/i.test(prefs)?"ko":"en";document.documentElement.lang=locale;document.documentElement.dataset.siteLang=locale;window.SUDOKU_LANG=locale;if(locale==="en")document.title="Sudoku Mate"})();</script>
 <script src="./assets/i18n.js"></script><script src="./assets/keyboard-guide.js"></script>
@@ -128,7 +128,7 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 </head>
 <body>
 <div id="appSplash" class="app-splash" role="status">
-  <img src="./assets/mate-192.png" width="78" height="78" alt="">
+  <img src="./assets/mate-192.png" width="68" height="68" alt="">
   <strong id="splashName">스도쿠 메이트</strong>
   <span class="splash-loader" aria-hidden="true"></span>
   <span id="splashStatus" class="sr-only">불러오는 중</span>
@@ -137,11 +137,12 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 <noscript><style>#appSplash{display:none}</style><p>스도쿠 메이트를 플레이하려면 JavaScript를 켜 주세요. Enable JavaScript to play Sudoku Mate.</p></noscript>
 <div class="shell" id="appShell">
   <header class="topbar app-topbar">
+    <button type="button" class="icon-button back-button" id="appBack" data-action="view" data-view="home" hidden></button>
     <button type="button" class="identity brand-button" data-action="view" data-view="home">
-      <img src="./assets/mate-192.png" width="42" height="42" alt="">
+      <img src="./assets/mate-192.png" width="32" height="32" alt="">
       <span id="appBrand" class="brand-title">스도쿠 메이트</span>
     </button>
-    <button type="button" class="help-button" id="appHelp" data-app-action="guide" aria-label="플레이 방법" title="플레이 방법"><span aria-hidden="true">?</span></button>
+    <button type="button" class="icon-button help-button" id="appHelp" data-app-action="guide" aria-label="플레이 방법"></button>
   </header>
   <main id="main" tabindex="-1"></main>
   <nav class="main-nav app-nav" id="appNav" aria-label="주요 메뉴"></nav>
@@ -227,6 +228,10 @@ function currentMistakes(puz,p){if(!state.showMistakes)return new Set();if(puz.s
 function navUpdate(){
  const navView={play:'catalog',editor:'custom',pvp:'home'}[state.view]||state.view;
  document.body.dataset.appView=state.view;
+ const back={play:'catalog',editor:'custom',pvp:'home'}[state.view];
+ $('#appBack').hidden=!back;
+ if(back)$('#appBack').dataset.view=back;
+ $('#appNav').hidden=Boolean(back);
  document.querySelectorAll('.nav-btn').forEach(b=>{
   const active=b.dataset.view===navView;
   b.classList.toggle('active',active);
@@ -272,7 +277,7 @@ function gridHtml(puz,p,selected,creator=false){let grid=creator?puz.givens:comp
 return '<div class="board" role="group" aria-label="9행 9열 스도쿠">'+Array.from({length:81},(_,i)=>{let r=Math.floor(i/9),c=i%9,v=grid[i],fixed=!creator&&puz.givens[i]!=='0',selectedCell=i===selected,peer= r===selRow||c===selCol||Math.floor(r/3)*3+Math.floor(c/3)===selBox,same=digit!=='0'&&v===digit,wrong=mistakes.has(i)&&!fixed;
  let activeHint=!creator&&hintPreview?.id===puz.id&&hintPreview.index===i;let classes='cell'+(creator?' creator-cell':'')+(fixed?' given':'')+(creator&&v!=='0'?' filled':'')+(selectedCell?' selected':'')+(!selectedCell&&peer?' peer':'')+(!selectedCell&&same?' same':'')+(wrong?' mistake':'')+(activeHint?' hint-target':'');let body='';if(v!=='0'){body=`<span class="digit">${v}</span>`}else if(!creator){let mask=p.notes[i]||0;if(mask)body='<span class="notes-grid" aria-label="메모">'+Array.from({length:9},(_,n)=>`<i>${mask&(1<<n)?n+1:''}</i>`).join('')+'</span>'}if(activeHint)body=`<span class="hint-big">${hintPreview.digit}</span><span class="hint-tiny">힌트</span>`;let label=`${r+1}행 ${c+1}열 `+(v!=='0'?(fixed?'고정 숫자 ':'숫자 ')+v:(creator?'빈칸':'빈칸'+(p.notes[i]?' 메모 있음':'')));
  return `<button type="button" class="${classes}" aria-label="${label}" aria-pressed="${selectedCell}" data-action="${creator?'editor-cell':'cell'}" data-index="${i}">${body}</button>`}).join('')+'</div>'}
-function keyboardHtml(notesMode,notesMask,disabled){return '<div class="keyboard" aria-label="숫자 선택">'+Array.from({length:9},(_,i)=>`<button type="button" class="key${notesMode&&(notesMask&(1<<i))?' note-selected':''}" data-action="${notesMode?'digit-note':'digit'}" data-digit="${i+1}" ${disabled?'disabled':''}>${i+1}</button>`).join('')+`<button type="button" class="key erase" data-action="${notesMode?'digit-note':'digit'}" data-digit="0" aria-label="지우기" title="지우기" ${disabled?'disabled':''}>${iconErase}</button>`+'</div>'}
+function keyboardHtml(notesMode,notesMask,disabled,showErase=true){return '<div class="keyboard" aria-label="숫자 선택">'+Array.from({length:9},(_,i)=>`<button type="button" class="key${notesMode&&(notesMask&(1<<i))?' note-selected':''}" data-action="${notesMode?'digit-note':'digit'}" data-digit="${i+1}" ${disabled?'disabled':''}>${i+1}</button>`).join('')+(showErase?`<button type="button" class="key erase" data-action="${notesMode?'digit-note':'digit'}" data-digit="0" aria-label="지우기" title="지우기" ${disabled?'disabled':''}>${iconErase}</button>`:'')+'</div>'}
 // Solve a manually constructed puzzle without changing its clues, user answers, or completion history.
 // Uses minimum-remaining-values backtracking. Returns one possible complete board for ambiguous puzzles.
 function findSudokuSolution(givens,budget=350000){
@@ -389,11 +394,29 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
  let running=timeMode()&&run?.status==='running',won=timeMode()&&run?.status==='won',lost=timeMode()&&run?.status==='lost';
  let canEdit=!timeMode()||running,mask=p.notes[selected]||0,solved=!timeMode()&&isComplete(puz,p);
  const best=state.timeAttackBests[puz.id];
- const tabs=`<div class="mode-tabs" role="group" aria-label="게임 모드"><button type="button" class="mode-btn ${!timeMode()?'active':''}" aria-pressed="${!timeMode()}" data-action="mode-normal">일반 모드</button><button type="button" class="mode-btn time ${timeMode()?'active':''}" aria-pressed="${timeMode()}" data-action="mode-time">⏱ 타임어택</button></div>`;
+ const tabs=`<div class="mode-tabs" role="group" aria-label="게임 모드"><button type="button" class="mode-btn ${!timeMode()?'active':''}" aria-pressed="${!timeMode()}" data-action="mode-normal">일반 모드</button><button type="button" class="mode-btn time ${timeMode()?'active':''}" aria-pressed="${timeMode()}" data-action="mode-time">타임어택</button></div>`;
  const top=timeMode()?`<div class="attack-hud"><div><div id="timeElapsed" class="attack-timer">${run?formatElapsed(elapsedAttack(run)):'00:00.00'}</div><div class="attack-meta">${run?.status==='running'?'시간 제한 없음   도전 진행 중':run?.status==='won'?'도전 성공':run?.status==='lost'?'목숨 소진   게임 종료':'도전을 시작하세요'}<br>최고 기록: ${best?formatElapsed(best.bestMs):(window.SUDOKU_LANG==='en'?'No record yet':'아직 없음')}</div></div><div>${heartHtml(run?.lives??3)}<div class="attack-meta" style="text-align:right">힌트 ${run?.hintsUsed||0}/${MAX_HINTS}   목숨 ${run?.lives??3}/3</div></div></div>`:'';
  const start=timeMode()&&!running?`<div class="attack-start ${lost?'attack-finished':''}"><strong>${won?'완주 성공!':lost?(window.SUDOKU_LANG==='en'?'💔 All hearts lost.':'💔 목숨이 모두 사라졌습니다.'):run?.status==='abandoned'?'이전 도전을 중단했습니다.':'준비되면 시작하세요!'}</strong>${won?`완주 시간 ${formatElapsed(run.finalMs)}   최고 ${formatElapsed(best?.bestMs||run.finalMs)}`:lost?'광고 시청으로 부활하거나 새로운 도전을 시작할 수 있습니다.':'시간 제한은 없습니다. 틀린 숫자를 누르면 목숨이 1개씩 줄어듭니다.'}<button type="button" class="primary" data-action="time-start">${run?'새 기록에 도전하기':'타임어택 시작'}</button>${lost&&(run.adRevivesUsed||0)<2?`<button type="button" class="ad-offer" data-action="ad-revive">홍보 영상 보고 하트 1개 받기   ${run.adRevivesUsed||0}/2</button>`:''}</div>`:'';
  const hints=p.hintsUsed||0;
- $('#main').innerHTML=`<section class="panel">${tabs}<div class="puzzle-top"><div><span class="minititle">${puz.level==='pvp'?'대결 이어 풀기':puz.builtin?'기본 스도쿠':'직접 만든 스도쿠'}</span><h2 class="puzzle-title">${escapeHtml(puz.title)}</h2><div class="puzzle-sub">기본 숫자 ${81-total}개   빈칸 ${total}개${solved?'   완료됨':''}</div></div><span class="chip ${puz.level}">${puz.levelName}</span></div>${top}<div class="statusbar"><span>진행 상황 ${solved?'  해결 완료':''}</span><strong>${count} / ${total}</strong></div><div class="track"><div style="width:${total?100*count/total:100}%"></div></div>${gridHtml(puz,p,selected)}${hintPreview?.id===puz.id?`<div class="hint-panel" role="status"><div><strong>💡 ${Math.floor(hintPreview.index/9)+1}행 ${hintPreview.index%9+1}열   정답 ${hintPreview.digit}</strong><small>보라색 칸에 정답을 표시했습니다. 입력 내용은 바뀌지 않았어요.   남은 힌트 ${MAX_HINTS-hints}개</small></div><button type="button" data-action="hint-close" class="secondary compact">닫기</button></div>`:''}${start}<div class="toolrow"><button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>✎ 메모 ${state.noteMode?'켜짐':'꺼짐'}</button><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">오류 표시 ${state.showMistakes?'ON':'OFF'}</button><button class="tool push" data-action="reset-progress">${timeMode()?'↻ 다시 도전':'↻ 초기화'}</button></div>${keyboardHtml(state.noteMode,mask,disabled||!canEdit)}<div class="toolrow"><button class="tool" data-action="show-hint" ${(!canEdit||hints>=MAX_HINTS||solved)?'disabled':''}>힌트 ${hints}/${MAX_HINTS}</button><button class="tool push" data-action="open-catalog">다른 문제 선택</button></div><p class="foot-hint">${timeMode()?'오답을 입력하면 목숨이 줄어듭니다. 시간 제한은 없고, 기록이 저장됩니다.':'칸을 누른 뒤 숫자를 선택하세요. 메모 모드에서는 후보 숫자를 여러 개 표시할 수 있습니다.'}<br>입력 내용과 메모는 자동 저장됩니다.</p>${puz.builtin?'':`<div class="notice">직접 만든 문제는 ${timeMode()?'유일한 정답을 가진 문제만 타임어택에 도전할 수 있습니다.':'가로 세로 3×3 규칙을 모두 만족하면 정답으로 인정합니다.'}</div>`}</section>`;
+ const hint=hintPreview?.id===puz.id?hintPreview:null;
+ const hintDetails=hint?`<div class="hint-panel" role="status"><strong>${appText(
+  `${Math.floor(hint.index/9)+1}행 ${hint.index%9+1}열 · ${hint.digit}`,
+  `Row ${Math.floor(hint.index/9)+1}, column ${hint.index%9+1} · ${hint.digit}`
+ )}</strong><button type="button" data-action="hint-close" class="secondary compact">닫기</button></div>`:'';
+ const tools=`<div class="play-tools" role="group" aria-label="${appText('풀이 도구','Puzzle tools')}">
+  <button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>${appIcon('note')}<span>${appText('메모','Notes')}</span></button>
+  <button class="tool" data-action="${state.noteMode?'digit-note':'digit'}" data-digit="0" ${disabled||!canEdit?'disabled':''}>${appIcon('erase')}<span>${appText('지우기','Erase')}</span></button>
+  <button class="tool" data-action="show-hint" ${!canEdit||hints>=MAX_HINTS||solved?'disabled':''}>${appIcon('hint')}<span>${appText('힌트','Hint')} <small>${MAX_HINTS-hints}</small></span></button>
+ </div>`;
+ const other=`<div class="play-options"><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">${appIcon('check')}${appText('오류 표시','Show errors')}</button>
+  <button class="tool" data-action="reset-progress">${appIcon('reset')}${timeMode()?appText('다시 도전','Restart run'):appText('초기화','Reset')}</button></div>`;
+ $('#main').innerHTML=`<section class="panel play-panel">
+  <div class="puzzle-top"><h1 class="puzzle-title">${escapeHtml(puz.title)}</h1><span class="chip ${puz.level}">${puz.levelName}</span></div>
+  ${tabs}${top}
+  <div class="statusbar"><span>${solved?appText('완료','Solved'):appText('풀이 진행률','Puzzle progress')}</span><strong>${count} / ${total}</strong></div>
+  <div class="track"><div style="width:${total?100*count/total:100}%"></div></div>
+  ${gridHtml(puz,p,selected)}${hintDetails}${start}${tools}${keyboardHtml(state.noteMode,mask,disabled||!canEdit,false)}${other}
+ </section>`;
  updateStopwatch();
 }
 function markCompleted(puz,p){let time=Date.now();p.done=true;p.completedAt=time;state.history=state.history.filter(v=>v.id!==puz.id);state.history.unshift({id:puz.id,title:puz.title,at:time,level:puz.level})}
@@ -415,7 +438,7 @@ function setSelection(index){hintPreview=null;if(!Number.isInteger(index)||index
 function resetProgress(){if(timeMode()){const run=runOf(state.activeId);if(run?.status==='running')openDialog({title:'타임어택을 다시 시작할까요?',message:'현재 도전과 입력한 숫자 메모는 초기화되며 기록되지 않습니다.',confirmLabel:'처음부터 도전',danger:true,onConfirm:retryTimeAttack});else retryTimeAttack();return}let p=ensureProgress(state.activeId);openDialog({title:'이 문제를 처음부터 풀까요?',message:'입력한 숫자와 메모를 지웁니다. 완료 기록은 유지됩니다.',confirmLabel:'초기화',danger:true,onConfirm:()=>{state.progress[state.activeId]={answers:EMPTY,notes:{},done:false,completedAt:0,updatedAt:Date.now(),hintsUsed:0};persist();renderPlay();notify('풀이가 초기화되었습니다.')}})}
 let catalogQuery='';
 function catalogCardsHtml(){let filtered=LEVELS.filter(l=>state.filter==='all'||state.filter===l.key).flatMap(l=>Array.from({length:75},(_,i)=>l.start+i));let q=catalogQuery.trim();if(q)filtered=filtered.filter(n=>String(n).includes(q));if(!filtered.length)return '<div class="empty" style="grid-column:1/-1"><strong>일치하는 번호가 없습니다</strong>다른 번호를 입력해 보세요.</div>';return filtered.map(n=>{let id=makeId(n),p=state.progress[id],solved=state.history.some(x=>x.id===id),started=p&&(p.answers!==EMPTY||Object.keys(p.notes||{}).length);return `<button class="number-card ${state.timeAttackBests[id]?'time-cleared':solved?'solved':started?'in-progress':''} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${state.timeAttackBests[id]?'★ 타임어택 완료':solved?'✓ 완료':started?'● 진행 중':'시작 전'}${state.timeAttackBests[id]?`<br>${formatElapsed(state.timeAttackBests[id].bestMs)}`:''}</small></button>`}).join('')}
-function renderCatalog(){let solved=state.history.filter(x=>x.id.startsWith('b')).length;$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h2 class="panel-title">문제 선택</h2><p class="panel-subtitle">${appText(`총 300문제 · 완료 ${solved}문제`,`300 puzzles · ${solved} solved`)}</p></div><button class="secondary compact" data-action="return-play">이어 풀기</button></div><div class="filters">${[{key:'all',name:'전체'},...LEVELS.map(l=>({key:l.key,name:l.name}))].map(l=>`<button class="filter ${state.filter===l.key?'active':''}" data-action="filter" data-filter="${l.key}">${l.name}</button>`).join('')}</div><label class="searchbar">${iconSearch}<input type="search" id="catalogSearch" inputmode="numeric" placeholder="문제 번호 검색 (예: 125)" value="${escapeHtml(catalogQuery)}" autocomplete="off" aria-label="문제 번호 검색"></label><div id="catalogCards" class="card-grid">${catalogCardsHtml()}</div></section>`}
+function renderCatalog(){let solved=state.history.filter(x=>x.id.startsWith('b')).length;$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h1 class="panel-title">문제 선택</h1><p class="panel-subtitle">${appText(`총 300문제 · 완료 ${solved}문제`,`300 puzzles · ${solved} solved`)}</p></div><button class="secondary compact" data-action="return-play">이어 풀기</button></div><div class="filters">${[{key:'all',name:'전체'},...LEVELS.map(l=>({key:l.key,name:l.name}))].map(l=>`<button class="filter ${state.filter===l.key?'active':''}" data-action="filter" data-filter="${l.key}">${l.name}</button>`).join('')}</div><label class="searchbar">${iconSearch}<input type="search" id="catalogSearch" inputmode="numeric" placeholder="문제 번호 검색 (예: 125)" value="${escapeHtml(catalogQuery)}" autocomplete="off" aria-label="문제 번호 검색"></label><div id="catalogCards" class="card-grid">${catalogCardsHtml()}</div></section>`}
 function renderCatalogCards(){let elem=$('#catalogCards');if(elem)elem.innerHTML=catalogCardsHtml()}
 function customProgressLabel(p){let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return '시작 전'}
 function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h2 class="panel-title">내 스도쿠</h2><p class="panel-subtitle">이름을 붙여 여러 문제를 보관하고, 언제든 수정하거나 다시 풀 수 있어요.</p></div><button class="primary compact" data-action="new-custom">＋ 만들기</button></div>${state.editor?`<div class="notice" style="margin:0 0 15px">작성 중인 문제가 있습니다. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):'<div class="empty"><strong>아직 만든 문제가 없어요</strong>‘만들기’를 눌러 고정 숫자를 배치하거나 자동으로 새 문제를 생성해 보세요.</div>'}</div>${dataToolsHtml()}</section>`}

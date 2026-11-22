@@ -2,9 +2,23 @@
 
 const appText=(ko,en)=>window.SUDOKU_LANG==='en'?en:ko;
 const appIcons={
- home:'⌂', solo:'▦', friends:'♟', world:'◎', custom:'✎', history:'◷', join:'↳', create:'+',
+ home:'<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-6h6v6"/>',
+ solo:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',
+ friends:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/>',
+ world:'<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>',
+ custom:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12h7m-3.5-3.5v7"/>',
+ history:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4.1 2.8c-.7.3-1.1.8-1.1 1.7m0 3.2h.01"/>',
+ back:'<path d="m11 6-6 6 6 6M5 12h14"/>',
+ next:'<path d="m9 6 6 6-6 6"/>',
+ play:'<path d="m9 5 11 7-11 7z"/>',
+ note:'<path d="m14.5 5.5 4 4M5 19l1-5 9-9a2.8 2.8 0 0 1 4 4l-9 9z"/>',
+ erase:'<path d="m8 19-4-4a2 2 0 0 1 0-3l8-8a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-7 7zm-1-9 8 8m-7 1h13"/>',
+ hint:'<path d="M9 18h6m-5 3h4m-5-6v-.6a3.5 3.5 0 0 0-1.1-2.2 6 6 0 1 1 8.2 0 3.5 3.5 0 0 0-1.1 2.2v.6z"/>',
+ check:'<path d="m5 12 4 4L19 6"/>',
+ reset:'<path d="M4 12a8 8 0 1 1 2.3 5.7M4 5v7h7"/>',
 };
-const appIcon=(name)=>'<span class="app-glyph glyph-'+name+'" aria-hidden="true">'+appIcons[name]+'</span>';
+const appIcon=name=>'<span class="app-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false">'+appIcons[name]+'</svg></span>';
 const guideKey='sudoku-mate-guide-v1';
 const nicknameKey='sudoku-mate-nickname';
 const appRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
@@ -20,33 +34,34 @@ let nearbyRefreshAt=0;
 let guideStep=0;
 let guideReturn=null;
 let pendingInvite=null;
-const appHeroDigits=[['','4','',''],['2','','6',''],['','8','3',''],['','','','7']];
 const appModes=[
- {key:'solo',title:appText('혼자 풀기','Solo'),description:appText('난이도별 300문제 · 타임어택','300 puzzles · Time Attack')},
- {key:'friends',title:appText('친구 대결','Friends'),description:appText('방 번호로 최대 4명과 대결','Use a room code · Up to 4 players')},
- {key:'world',title:appText('월드 매칭','World Match'),description:appText('전 세계 플레이어와 1:1 대결','Play 1v1 with players worldwide')},
+ {key:'solo',title:appText('혼자 풀기','Solo'),description:appText('퍼즐 300개 · 타임어택','300 puzzles · Time Attack')},
+ {key:'friends',title:appText('친구 대결','Friends'),description:appText('방 번호로 함께 플레이','Join with a room code')},
+ {key:'world',title:appText('월드 매칭','World Match'),description:''},
 ];
-
-function appArt(){
- return '<div class="hero-art" aria-hidden="true"><div class="hero-orbit"></div><div class="hero-board">'+
-  appHeroDigits.flat().map((digit,i)=>'<span class="'+(i===10?'hero-tile-focus':i===6?'hero-tile-light':'')+'">'+digit+'</span>').join('')+
-  '</div></div>';
+function homeMode({key,title,description}){
+ const detail=key==='world'?'<small data-queue-count></small>':'<small>'+description+'</small>';
+ return '<button type="button" class="app-mode mode-'+key+'" data-app-action="'+key+'">'+
+  '<span class="mode-symbol">'+appIcon(key)+'</span><span class="mode-copy"><strong>'+title+'</strong>'+detail+'</span>'+
+  '<span class="mode-chevron">'+appIcon('next')+'</span></button>';
 }
 function renderHome(){
- $('#main').innerHTML='<section class="app-hero"><div class="hero-copy"><span class="hero-tag">SUDOKU MATE</span><h1>'+
-  appText('한 칸씩,<br>더 재밌게.','One square<br>at a time.')+'</h1><p>'+
-  appText('혼자 풀고, 친구와 겨뤄 보세요.','Solve at your pace or challenge a friend.')+'</p></div>'+appArt()+'</section>'+
-  '<section class="app-modes" aria-labelledby="modesTitle"><h2 id="modesTitle">'+appText('플레이 모드','Play modes')+'</h2><div class="mode-grid">'+
-  appModes.map(({key,title,description})=>'<button type="button" class="app-mode mode-'+key+'" data-app-action="'+key+'">'+
-   '<span class="mode-symbol">'+appIcon(key)+'</span><span class="mode-copy"><strong>'+title+'</strong><small>'+description+'</small></span>'+
-   (key==='world'?'<span class="queue-tag" data-queue-count></span>':'')+'<span class="mode-chevron" aria-hidden="true"></span></button>').join('')+
-  '</div></section>';
+ const puzzle=getPuzzle(state.activeId);
+ const run=timeMode()?runOf(state.activeId):state.progress[state.activeId];
+ const resume=puzzle&&run&&(timeMode()?run.status==='running':!run.done&&(run.answers!==EMPTY||Object.keys(run.notes||{}).length));
+ $('#main').innerHTML='<section class="home-screen"><h1>'+appText('플레이','Play')+'</h1>'+
+  homeMode(appModes[0])+'<div class="mode-list">'+appModes.slice(1).map(homeMode).join('')+'</div>'+
+  (resume?'<button type="button" class="home-resume" data-action="return-play">'+appIcon('play')+
+   '<span><strong>'+appText('이어 풀기','Continue')+'</strong><small>'+escapeHtml(puzzle.title)+'</small></span>'+appIcon('next')+'</button>':'')+'</section>';
  appUpdateLobby();
  appRefreshWaiting();
 }
 function appSetupNavigation(){
  $('#appBrand').textContent=appText('스도쿠 메이트','Sudoku Mate');
  $('#appHelp').ariaLabel=$('#appHelp').title=appText('플레이 방법','How to play');
+ $('#appHelp').innerHTML=appIcon('help');
+ $('#appBack').ariaLabel=appText('뒤로','Back');
+ $('#appBack').innerHTML=appIcon('back');
  const nav=$('#appNav');
  nav.ariaLabel=appText('주요 메뉴','Main navigation');
  nav.innerHTML=[
@@ -59,7 +74,7 @@ function appSetupNavigation(){
 
 const guideSlides=[
  {icon:'solo',title:appText('빈칸을 골라 숫자를 입력','Tap a cell and enter a number'),body:appText('가로줄, 세로줄, 3×3 구역마다 1부터 9까지 한 번씩 들어갑니다.','Each row, column and 3×3 box contains each number from 1 to 9 once.')},
- {icon:'custom',title:appText('헷갈리면 메모','Make a note'),body:appText('메모를 켜고 후보 숫자를 적어 보세요. 지우개로 지울 수 있고, 막힐 땐 힌트를 쓸 수 있어요.','Turn on Notes to mark possible numbers. Use Erase to clear an entry or Hint when you’re stuck.')},
+ {icon:'note',title:appText('헷갈리면 메모','Make a note'),body:appText('메모를 켜고 후보 숫자를 적어 보세요. 지우개로 지울 수 있고, 막힐 땐 힌트를 쓸 수 있어요.','Turn on Notes to mark possible numbers. Use Erase to clear an entry or Hint when you’re stuck.')},
  {icon:'friends',title:appText('같은 퍼즐로 대결','Race on the same puzzle'),body:appText('친구와는 4자리 방 번호로 만나고, 월드 매칭에서는 상대를 자동으로 찾아요.','Use a 4-digit room code with friends, or let World Match find an opponent.')},
 ];
 function appRenderGuide(){
@@ -89,8 +104,8 @@ function appCloseGuide(){
  }
 }
 
-function lobbyHeading(icon,title,text){
- return '<div class="lobby-heading lobby-'+icon+'"><div class="mode-symbol">'+appIcon(icon)+'</div><div><h1>'+title+'</h1><p>'+text+'</p></div></div>';
+function lobbyHeading(title){
+ return '<h1 class="lobby-heading">'+title+'</h1>';
 }
 function lobbyAction(name,text,kind='primary',extra=''){
  return '<button type="button" class="'+kind+' app-primary" data-action="'+name+'" '+extra+'>'+text+'</button>';
@@ -151,8 +166,8 @@ function lobbyBackButton(text){
 }
 function worldLobby(){
  const busy=pvp.conn==='matching'||pvp.conn==='connecting'||pvpRandom.starting;
- return lobbyHeading('world',appText('월드 매칭','World Match'),appText('전 세계 플레이어와 1:1로 겨뤄요.','Challenge a player from anywhere in the world.'))+
-  '<div class="lobby-card world-room"><span class="world-orb">'+appIcon('world')+'</span><span class="queue-tag" data-queue-count></span>'+
+ return lobbyHeading(appText('월드 매칭','World Match'))+
+  '<div class="lobby-card world-room"><span class="world-orb '+(busy?'is-searching':'')+'">'+appIcon('world')+'</span><span class="queue-tag" data-queue-count></span>'+
   '<h2>'+(busy?appText('상대를 찾는 중','Looking for an opponent'):appText('1:1 빠른 대결','Quick 1v1 match'))+'</h2>'+
   (busy||pvp.conn==='disconnected'?lobbyStatus():'<p class="room-note">'+appText('보통 난이도 · 하트 3개','Medium difficulty · 3 hearts')+'</p>')+
   (busy?lobbyAction('pvp-random-cancel',appText('매칭 취소','Cancel search'),'ghost'):
@@ -161,7 +176,7 @@ function worldLobby(){
 }
 function pvpRenderLobby(){
  if(pvp.mode==='random')return worldLobby();
- return lobbyHeading('friends',appText('친구 대결','Friends'),appText('4자리 방 번호로 모여 같은 퍼즐을 풀어요.','Join with a 4-digit code and solve the same puzzle.'))+
+ return lobbyHeading(appText('친구 대결','Friends'))+
   (pvp.role?friendRoomWaiting():'<div class="friend-layout"><div>'+friendJoinForm()+
    '<div class="lobby-card lobby-profile">'+lobbyName()+'</div></div>'+friendSettings()+'</div>');
 }
@@ -173,7 +188,7 @@ function appUpdateLobby(){
    count===null?appText('대기 인원 확인 불가','Queue count unavailable'):
     appText('매칭 대기 '+count.toLocaleString('ko-KR')+'명',count.toLocaleString('en-US')+' waiting');
   if(el.textContent!==text)el.textContent=text;
-  el.classList.toggle('is-live',Number.isInteger(count));
+  el.classList.toggle('is-live',Number.isInteger(count)&&count>0);
  });
  const badge=$('#nearbyBadge');
  if(badge)badge.hidden=!nearby;
