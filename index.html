@@ -28,9 +28,6 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 .cell.hint-target,.cell.hint-target.selected{background:#f1e9ff;color:#7040c0;box-shadow:inset 0 0 0 3px #9760ec;z-index:4;animation:hintGlow 1.2s ease-in-out 2}
 .cell .hint-big{font-size:1.13em;font-weight:900;color:#6436bf;line-height:1;transform:translateY(3px)}
 .cell .hint-tiny{font-size:clamp(7px,1.6vw,10px);position:absolute;top:2px;left:3px;letter-spacing:-.3px;color:#895ec8;font-weight:850}
-.hint-panel{width:min(100%,495px);margin:11px auto 0;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 12px;border-radius:12px;background:#f2eaff;border:1px solid #d5beff;color:#7045b6}
-.hint-panel strong{display:block;font-size:13px}.hint-panel small{display:block;margin-top:4px;font-size:11px;line-height:1.45;color:#8564b5}
-.hint-panel button{flex-shrink:0;background:white;color:#7045b6;border-color:#d6c1f5}
 @keyframes hintGlow{50%{box-shadow:inset 0 0 0 4px #bfa1f7;background:#eadfff}}
 /* Animated answer board: view-only; does not affect progress/history */
 @keyframes answerReveal{0%{opacity:0;transform:translateY(7px) scale(.7);color:#965be0}100%{opacity:1;transform:translateY(0) scale(1);color:#3568d6}}
@@ -53,7 +50,6 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 .attack-finished{border-color:#f3d0d8;background:#fff5f6}.attack-locked-note{color:#a64a61;font-size:11px;text-align:center;margin-top:8px}
 .time-best{font-variant-numeric:tabular-nums;color:#bd4965;font-weight:850}.best-records{display:grid;gap:8px}.best-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e5eafa;padding:12px;border-radius:11px;background:#fafbff}.best-row b{font-size:13px}.best-row small{font-size:11px;color:#8a99ad}.best-row strong{color:#b94e63;white-space:nowrap;font-variant-numeric:tabular-nums}
 .gameover[hidden]{display:none}.gameover{position:fixed;z-index:220;inset:0;display:grid;place-items:center;padding:18px;background:#291623ba}.gameover-card{width:min(100%,360px);background:#fff;border-radius:24px;text-align:center;position:relative;padding:36px 24px 25px;box-shadow:0 25px 70px #120a1570;animation:gameOverCard .65s cubic-bezier(.2,1.2,.3,1)}
-@keyframes gameOverCard{0%{opacity:0;transform:scale(1.25) rotate(-4deg)}25%{transform:scale(.91) rotate(3deg)}60%{opacity:1;transform:scale(1.03) rotate(-2deg)}100%{transform:scale(1) rotate(0)}}
 .gameover-icon{font-size:64px;display:block;animation:brokenHeart 1.15s ease-in-out both}@keyframes brokenHeart{0%{transform:scale(1.4);filter:drop-shadow(0 0 8px #f16c7e)}40%{transform:scale(.72) rotate(-16deg)}80%{transform:scale(1.14) rotate(8deg)}100%{transform:scale(1)}}
 .gameover-card h2{font-size:27px;letter-spacing:-.9px;margin:12px 0 9px;color:#b13f57}.gameover-card p{font-size:13px;color:#72819b;line-height:1.65;margin:0 0 19px}.gameover-actions{display:grid;gap:8px}.gameover-actions button{width:100%}
 @media(prefers-reduced-motion:reduce){.gameover-card,.gameover-icon,.damage-shake,.attack-hearts svg.heart-lost,.cell.hit-error{animation:none!important}}
@@ -93,9 +89,9 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 /* Duel UI: matching the single-player time attack visuals */
 .pvp-top-alert{position:fixed;z-index:330;top:max(12px,env(safe-area-inset-top));left:50%;width:min(92vw,420px);transform:translate(-50%,-150%);opacity:0;pointer-events:none;padding:14px 15px;background:#fff;border:1px solid #c9d7f4;border-radius:16px;box-shadow:0 12px 34px #193c7570;display:flex;align-items:center;gap:12px;transition:transform .43s cubic-bezier(.24,1.25,.35,1),opacity .22s;color:#344765}.pvp-top-alert.show{transform:translate(-50%,0);opacity:1}.pvp-alert-icon{height:38px;width:38px;flex-shrink:0;display:grid;place-items:center;background:#e9efff;border-radius:12px;font-size:22px}.pvp-alert-message{font-weight:830;font-size:13px}.pvp-alert-sub{font-size:11px;color:#7a8ca5;margin-top:3px}
 .pvp-hearts{display:flex;gap:3px;align-items:center;justify-content:flex-start;flex-wrap:wrap;min-height:27px}.pvp-hearts svg{width:23px;height:23px;fill:#ed5572;stroke:#ed5572;stroke-width:1.3}.pvp-hearts svg.empty{fill:#eff1f6;stroke:#c4cbd7}.pvp-hearts svg.heart-lost{animation:heartDrop .7s ease-out both}
-.pvp-score .hearts{letter-spacing:normal;font-size:12px;min-height:28px}.pvp-score{transition:border-color .2s,box-shadow .2s}.pvp-score.life-hit{animation:damageShake .42s ease-out;border-color:#f38ca2;box-shadow:0 0 0 2px #ffd4dc}
+.pvp-score .hearts{letter-spacing:normal;font-size:12px;min-height:28px}.pvp-score{transition:border-color .2s,box-shadow .2s}:is(.pvp-score,.multi-card).life-hit{animation:damageShake .42s ease-out;border-color:#f38ca2;box-shadow:0 0 0 2px #ffd4dc}
 .pvp-score .name{font-size:12px}.pvp-event{display:none}.pvp-timer-card{padding:10px 12px}.pvp-match-heading p{font-size:11px}.pvp-grid-note{display:none}.pvp-mode-select{margin:14px 0}.pvp-hero p{margin-bottom:0}
-.pvp-outcome[hidden]{display:none}.pvp-outcome{position:fixed;z-index:285;inset:0;background:#101c328c;padding:20px;display:grid;place-items:center;overflow:hidden}.pvp-outcome-card{width:min(100%,380px);border-radius:25px;background:#fff;z-index:2;position:relative;text-align:center;padding:30px 22px 23px;box-shadow:0 23px 80px #090d2359;animation:pvpResultEnter .58s cubic-bezier(.25,1.4,.45,1) both}.pvp-outcome-card.lose{animation:gameOverCard .62s cubic-bezier(.2,1.2,.3,1) both}.pvp-outcome-card.win{box-shadow:0 21px 80px #193dc266;border:2px solid #bfd5ff}.pvp-outcome-icon{font-size:57px;display:block;animation:cardPop .55s ease-out}.pvp-outcome-card.lose .pvp-outcome-icon{animation:brokenHeart 1.1s ease-out}.pvp-outcome-title{font-size:29px;letter-spacing:-1.4px;font-weight:900;margin:10px 0}.pvp-outcome-card.win .pvp-outcome-title{color:#255cc8}.pvp-outcome-card.lose .pvp-outcome-title{color:#c24b65}.pvp-outcome-detail{font-size:13px;color:#7587a0;line-height:1.7;margin-bottom:20px}.pvp-outcome-actions{display:grid;gap:9px}.pvp-outcome-actions button{width:100%}@keyframes pvpResultEnter{0%{opacity:0;transform:translateY(42px) scale(.83)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.pvp-outcome[hidden]{display:none}.pvp-outcome{position:fixed;z-index:285;inset:0;background:#101c328c;padding:20px;display:grid;place-items:center;overflow:hidden}.pvp-outcome-card{width:min(100%,380px);border-radius:25px;background:#fff;z-index:2;position:relative;text-align:center;padding:30px 22px 23px;box-shadow:0 23px 80px #090d2359;animation:pvpResultEnter .58s cubic-bezier(.25,1.4,.45,1) both}.pvp-outcome-card.lose{animation:result-in .18s ease-out both}.pvp-outcome-card.win{box-shadow:0 21px 80px #193dc266;border:2px solid #bfd5ff}.pvp-outcome-icon{font-size:57px;display:block;animation:cardPop .55s ease-out}.pvp-outcome-card.lose .pvp-outcome-icon{animation:brokenHeart 1.1s ease-out}.pvp-outcome-title{font-size:29px;letter-spacing:-1.4px;font-weight:900;margin:10px 0}.pvp-outcome-card.win .pvp-outcome-title{color:#255cc8}.pvp-outcome-card.lose .pvp-outcome-title{color:#c24b65}.pvp-outcome-detail{font-size:13px;color:#7587a0;line-height:1.7;margin-bottom:20px}.pvp-outcome-actions{display:grid;gap:9px}.pvp-outcome-actions button{width:100%}@keyframes pvpResultEnter{0%{opacity:0;transform:translateY(42px) scale(.83)}100%{opacity:1;transform:translateY(0) scale(1)}}
 .pvp-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}.pvp-confetti span{position:absolute;left:var(--x);top:-30px;width:8px;height:15px;background:var(--c);border-radius:2px;animation:pvpConfetti var(--d) cubic-bezier(.2,.6,.35,1) forwards;animation-delay:var(--delay)}@keyframes pvpConfetti{from{transform:translate3d(0,-30px,0) rotate(0)}to{transform:translate3d(var(--dx),115vh,0) rotate(900deg)}}
 .pvp-share-url{display:flex;gap:7px;align-items:center;margin-top:11px}.pvp-share-url input{min-width:0;flex:1;border:1px solid #dce5f2;border-radius:10px;padding:10px;font-size:11px;color:#52698a;background:#fafcff}.pvp-share-url button{flex-shrink:0}
 .pvp-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 15px}.pvp-choice{border:1px solid #dfe6f2;border-radius:14px;background:#f8faff;padding:18px 10px;min-height:103px;text-align:center;color:#375a9a}.pvp-choice strong{display:block;font-size:14px;color:#284c9d}.pvp-choice small{display:block;margin-top:8px;font-size:11px;color:#8798af;line-height:1.45}.pvp-choice.active{background:#e9f0ff;border-color:#97b3fa;box-shadow:inset 0 0 0 1px #7da2f6}
@@ -103,7 +99,7 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 .pvp-simple-status{border-radius:12px;background:#f0f5ff;color:#466497;padding:12px;font-size:12px;line-height:1.65;margin-top:9px}.pvp-help-light{font-size:11px;color:#8697aa;line-height:1.5;margin-top:9px}.pvp-finished{margin:11px auto;max-width:495px;padding:13px}.pvp-finished strong{font-size:17px}.pvp-finished small{display:none}
 .pvp-continue{max-width:495px;margin:12px auto 0;display:flex;gap:7px}.pvp-continue button{flex:1}
 .pvp-result-badge{font-size:12px;font-weight:850;padding:7px 9px;border-radius:9px;background:#e7f6ed;color:#23754f}.pvp-result-badge.lose{background:#ffedf0;color:#b74a63}
-@media(prefers-reduced-motion:reduce){.pvp-outcome-card,.pvp-confetti span,.pvp-top-alert,.pvp-score.life-hit,.pvp-hearts svg.heart-lost{animation:none;transition:none}}
+@media(prefers-reduced-motion:reduce){.pvp-outcome-card,.pvp-confetti span,.pvp-top-alert,:is(.pvp-score,.multi-card).life-hit,.pvp-hearts svg.heart-lost{animation:none;transition:none}}
 
 /* Progress records: compact animated categories */
 .history-accordion-list{display:grid;gap:9px}.history-section{border:1px solid #e0e7f4;border-radius:14px;background:#fff;overflow:hidden}.history-section.open{border-color:#cbd9f0}.history-heading{width:100%;padding:15px 13px;border:0;background:#f9fbff;display:flex;align-items:center;gap:10px;color:#324b75;text-align:left;font-size:14px;font-weight:850;cursor:pointer}.history-section.open>.history-heading{background:#edf4ff}.history-heading-title{flex:1}.history-count{border-radius:20px;background:#e9eef7;color:#647996;padding:4px 9px;font-variant-numeric:tabular-nums;font-size:12px}.history-chevron{width:19px;height:19px;color:#6f84a5;transition:transform .3s ease}.history-section.open .history-chevron{transform:rotate(180deg)}.history-collapsible{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .32s ease,opacity .3s ease}.history-section.open .history-collapsible{grid-template-rows:1fr;opacity:1}.history-collapsible-inner{min-height:0;overflow:hidden;padding:0 12px;visibility:hidden;transition:visibility .32s}.history-section.open .history-collapsible-inner{visibility:visible;padding:12px}.history-more{width:100%;padding:11px;border:1px solid #d8e2f3;border-radius:10px;background:#f7faff;color:#3d65aa;font-size:12px;font-weight:800;cursor:pointer}.history-item[hidden]{display:none!important}.history-time-clear{background:linear-gradient(120deg,#fff7da,#fffdf3);border:1px solid #f2d67b}.history-time-clear b{color:#805a12}.history-gold-label{display:inline-flex!important;width:max-content;margin:0 0 6px!important;padding:4px 9px;background:#f5dd86;border-radius:6px;color:#815a11!important;font-weight:850;font-size:11px!important}.history-time-result{text-align:right}.history-time-result strong{display:block;margin-bottom:9px;color:#95620f;font-size:17px;font-variant-numeric:tabular-nums}.number-card.time-cleared{background:linear-gradient(145deg,#fff0b2,#fff9df);border-color:#e6bc4f;box-shadow:inset 0 0 0 1px #e7c875}.number-card.time-cleared b{color:#72521b}.number-card.time-cleared small{color:#94651f;font-size:10px}.history-duel-win{color:#2e65bb}.history-duel-lose{color:#b44b61}
@@ -175,14 +171,14 @@ function normalizeState(x){let d=defaultState();if(!x||typeof x!=='object')retur
  d.noteMode=!!x.noteMode;d.showMistakes=x.showMistakes!==false;
  d.filter=typeof x.filter==='string'?x.filter:'all';
  d.custom=Array.isArray(x.custom)?x.custom.filter(o=>o&&typeof o.id==='string'&&o.id.startsWith('c')&&typeof o.givens==='string'&&/^[0-9]{81}$/.test(o.givens)).map(o=>({id:o.id,name:String(o.name||'내 스도쿠').slice(0,45),givens:o.givens,createdAt:+o.createdAt||Date.now(),updatedAt:+o.updatedAt||Date.now()})):[];
- d.progress={};if(x.progress&&typeof x.progress==='object'){for(let [id,p] of Object.entries(x.progress)){if(!p||typeof p!=='object')continue;let notes={};if(p.notes&&typeof p.notes==='object'){for(let [i,m] of Object.entries(p.notes)){if(/^\d{1,2}$/.test(i)&&+i<81&&Number.isInteger(m)&&m>0&&m<512)notes[i]=m}}d.progress[id]={answers:clampString(p.answers),notes,done:!!p.done,completedAt:+p.completedAt||0,updatedAt:+p.updatedAt||0,hintsUsed:Math.max(0,Math.min(2,+p.hintsUsed||0))}}}
+ d.progress={};if(x.progress&&typeof x.progress==='object'){for(let [id,p] of Object.entries(x.progress)){if(!p||typeof p!=='object')continue;let notes={};if(p.notes&&typeof p.notes==='object'){for(let [i,m] of Object.entries(p.notes)){if(/^\d{1,2}$/.test(i)&&+i<81&&Number.isInteger(m)&&m>0&&m<512)notes[i]=m}}d.progress[id]={answers:clampString(p.answers),notes,done:!!p.done,completedAt:+p.completedAt||0,updatedAt:+p.updatedAt||0,hintsUsed:Math.max(0,Math.min(2+(p.bonusHints===1?1:0),+p.hintsUsed||0)),bonusHints:p.bonusHints===1?1:0}}}
  d.history=Array.isArray(x.history)?x.history.filter(v=>v&&typeof v.id==='string'&&Number.isFinite(+v.at)).map(v=>({id:v.id,title:String(v.title||'스도쿠').slice(0,45),at:+v.at,level:String(v.level||'custom').slice(0,30)})).slice(0,1500):[];
  if(x.editor&&typeof x.editor==='object'&&typeof x.editor.givens==='string'&&/^[0-9]{81}$/.test(x.editor.givens))d.editor={id:typeof x.editor.id==='string'?x.editor.id:null,name:String(x.editor.name||'').slice(0,45),givens:x.editor.givens,selected:Number.isInteger(x.editor.selected)&&x.editor.selected>=0&&x.editor.selected<81?x.editor.selected:0,difficulty:LEVELS.some(z=>z.key===x.editor.difficulty)?x.editor.difficulty:'medium'};
  d.playMode=x.playMode==='time'?'time':'normal';
  if(x.timeAttackRuns&&typeof x.timeAttackRuns==='object')for(const [id,r] of Object.entries(x.timeAttackRuns)){
   if(!r||typeof r!=='object'||!(id.match(/^b\d{3}$/)||d.custom.some(v=>v.id===id)))continue;
   const notes={};if(r.notes&&typeof r.notes==='object')for(const [k,v] of Object.entries(r.notes))if(/^\d{1,2}$/.test(k)&&+k<81&&Number.isInteger(v)&&v>0&&v<512)notes[k]=v;
-  d.timeAttackRuns[id]={answers:clampString(r.answers),notes,hintsUsed:Math.max(0,Math.min(3,+r.hintsUsed||0)),adRevivesUsed:Math.max(0,Math.min(2,+r.adRevivesUsed||0)),adHintUsed:Math.max(0,Math.min(1,+r.adHintUsed||0)),bonusHints:Math.max(0,Math.min(1,+r.bonusHints||0)),lives:Math.max(0,Math.min(3,Number.isFinite(+r.lives)?+r.lives:3)),status:['running','won','lost','abandoned'].includes(r.status)?r.status:'lost',startedAt:Number.isFinite(+r.startedAt)&&+r.startedAt>0?+r.startedAt:Date.now(),finishedAt:+r.finishedAt||0,finalMs:Math.max(0,+r.finalMs||0),solution:typeof r.solution==='string'&&/^[1-9]{81}$/.test(r.solution)?r.solution:null};
+  d.timeAttackRuns[id]={answers:clampString(r.answers),notes,hintsUsed:Math.max(0,Math.min(3,+r.hintsUsed||0)),adRevivesUsed:Math.max(0,Math.min(2,+r.adRevivesUsed||0)),adHintUsed:Math.max(0,Math.min(1,+r.adHintUsed||0)),bonusHints:Math.max(0,Math.min(1,+r.bonusHints||0)),lives:Math.max(0,Math.min(3,Number.isFinite(+r.lives)?+r.lives:3)),status:['running','won','lost','abandoned'].includes(r.status)?r.status:'lost',startedAt:Number.isFinite(+r.startedAt)&&+r.startedAt>0?+r.startedAt:Date.now(),activeMs:Math.max(0,+r.activeMs||+r.finalMs||0),finishedAt:+r.finishedAt||0,finalMs:Math.max(0,+r.finalMs||0),solution:typeof r.solution==='string'&&/^[1-9]{81}$/.test(r.solution)?r.solution:null};
  }
  if(x.timeAttackBests&&typeof x.timeAttackBests==='object')for(const [id,v] of Object.entries(x.timeAttackBests)){
   if(!v||typeof v!=='object'||!Number.isFinite(+v.bestMs)||+v.bestMs<=0)continue;
@@ -260,7 +256,7 @@ function finishAppNavigation(view){
  state.view=view;
  persist();
  render();
- appNearbyLease();
+ syncTapRoom();
  if(view==='play'&&timeMode()&&runOf(state.activeId)?.status==='lost')showGameOver();
  window.scrollTo({top:0,behavior:'auto'});
  $('#main').focus({preventScroll:true});
@@ -268,7 +264,7 @@ function finishAppNavigation(view){
 function openGame(id){if(state.view==='pvp')pvpConnectionClose();hintPreview=null;let puz=getPuzzle(id);if(!puz){notify('문제를 찾을 수 없습니다.');return}state.activeId=id;state.view='play';state.selected=puz.givens.indexOf('0');if(state.selected<0)state.selected=0;persist();render();window.scrollTo({top:0,behavior:'auto'})}
 function gridHtml(puz,p,selected,creator=false){let grid=creator?puz.givens:completeBoard(puz,p);let mistakes=!creator?currentMistakes(puz,p):conflicts(grid),digit=grid[selected]||'0',selRow=Math.floor(selected/9),selCol=selected%9,selBox=Math.floor(selRow/3)*3+Math.floor(selCol/3);
 return '<div class="board" role="group" aria-label="9행 9열 스도쿠">'+Array.from({length:81},(_,i)=>{let r=Math.floor(i/9),c=i%9,v=grid[i],fixed=!creator&&puz.givens[i]!=='0',selectedCell=i===selected,peer= r===selRow||c===selCol||Math.floor(r/3)*3+Math.floor(c/3)===selBox,same=digit!=='0'&&v===digit,wrong=mistakes.has(i)&&!fixed;
- let activeHint=!creator&&hintPreview?.id===puz.id&&hintPreview.index===i;let classes='cell'+(creator?' creator-cell':'')+(fixed?' given':'')+(creator&&v!=='0'?' filled':'')+(selectedCell?' selected':'')+(!selectedCell&&peer?' peer':'')+(!selectedCell&&same?' same':'')+(wrong?' mistake':'')+(activeHint?' hint-target':'');let body='';if(v!=='0'){body=`<span class="digit">${v}</span>`}else if(!creator){let mask=p.notes[i]||0;if(mask)body='<span class="notes-grid" aria-label="메모">'+Array.from({length:9},(_,n)=>`<i>${mask&(1<<n)?n+1:''}</i>`).join('')+'</span>'}if(activeHint)body=`<span class="hint-big">${hintPreview.digit}</span><span class="hint-tiny">힌트</span>`;let label=`${r+1}행 ${c+1}열 `+(v!=='0'?(fixed?'고정 숫자 ':'숫자 ')+v:(creator?'빈칸':'빈칸'+(p.notes[i]?' 메모 있음':'')));
+ let activeHint=!creator&&hintPreview?.id===puz.id&&hintPreview.index===i;let classes='cell'+(creator?' creator-cell':'')+(fixed?' given':'')+(creator&&v!=='0'?' filled':'')+(selectedCell?' selected':'')+(!selectedCell&&peer?' peer':'')+(!selectedCell&&same?' same':'')+(wrong?' mistake':'')+(activeHint?' hint-target':'');let body='';if(v!=='0'){body=`<span class="digit">${v}</span>`}else if(!creator){let mask=p.notes[i]||0;if(mask)body='<span class="notes-grid" aria-label="메모">'+Array.from({length:9},(_,n)=>`<i>${mask&(1<<n)?n+1:''}</i>`).join('')+'</span>'}if(activeHint)body=`<span class="hint-big" role="status">${hintPreview.digit}</span><span class="hint-tiny">힌트</span>`;let label=`${r+1}행 ${c+1}열 `+(v!=='0'?(fixed?'고정 숫자 ':'숫자 ')+v:(creator?'빈칸':'빈칸'+(p.notes[i]?' 메모 있음':'')));
  return `<button type="button" class="${classes}" aria-label="${label}" aria-pressed="${selectedCell}" data-action="${creator?'editor-cell':'cell'}" data-index="${i}">${body}</button>`}).join('')+'</div>'}
 function keyboardHtml(notesMode,notesMask,disabled,showErase=true){return '<div class="keyboard" aria-label="숫자 선택">'+Array.from({length:9},(_,i)=>`<button type="button" class="key${notesMode&&(notesMask&(1<<i))?' note-selected':''}" data-action="${notesMode?'digit-note':'digit'}" data-digit="${i+1}" ${disabled?'disabled':''}>${i+1}</button>`).join('')+(showErase?`<button type="button" class="key erase" data-action="${notesMode?'digit-note':'digit'}" data-digit="0" aria-label="지우기" title="지우기" ${disabled?'disabled':''}>${iconErase}</button>`:'')+'</div>'}
 // Solve a manually constructed puzzle without changing its clues, user answers, or completion history.
@@ -300,12 +296,37 @@ const timeMode=()=>state.playMode==='time';
 const runOf=id=>state.timeAttackRuns[id]||null;
 const attackSolution=(puz,run)=>puz.solution||run?.solution||null;
 function formatElapsed(ms){ms=Math.max(0,Math.floor(ms));let m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),c=Math.floor(ms%1000/10);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`}
-function elapsedAttack(run){return run.status==='running'?Math.max(0,Date.now()-run.startedAt):Math.max(0,run.finalMs||0)}
+const clockAnchors=new Map();
+let nativeForeground=true;
+let pagePresent=true;
+function elapsedAttack(run){
+ if(run.status!=='running')return run.finalMs||0;
+ const anchor=clockAnchors.get(run);
+ return (run.activeMs||0)+(anchor===undefined?0:Math.max(0,performance.now()-anchor));
+}
+function checkpointClocks(){
+ const now=performance.now(),active=nativeForeground && pagePresent && !document.hidden;
+ let changed=false;
+ for(const [run,anchor] of clockAnchors){
+  if(run.status==='running'){run.activeMs=(run.activeMs||0)+Math.max(0,now-anchor);changed=true}
+  clockAnchors.delete(run);
+ }
+ if(active)for(const run of Object.values(state.timeAttackRuns)){
+  if(run.status==='running')clockAnchors.set(run,now);
+ }
+ if(changed)persist();
+}
+function mateForeground(value){nativeForeground=value;checkpointClocks()}
+document.addEventListener('visibilitychange',checkpointClocks);
+window.addEventListener('pagehide',()=>{pagePresent=false;checkpointClocks()});
+window.addEventListener('pageshow',()=>{pagePresent=true;checkpointClocks()});
+setInterval(()=>{if(clockAnchors.size)checkpointClocks()},1000);
+checkpointClocks();
 function updateStopwatch(){let e=$('#timeElapsed');if(e&&state.view==='play'&&timeMode()){let r=runOf(state.activeId);if(r)e.textContent=formatElapsed(elapsedAttack(r))}}
 function timeAnswerCorrect(puz,run,i,digit){let sol=attackSolution(puz,run);return !!sol&&sol[i]===String(digit)}
 function startTimeAttack(){const puz=getPuzzle(state.activeId);if(!puz)return;let sol=puz.solution;
  if(!sol){const counted=countSolutions(puz.givens,2,95000);if(counted.limited){notify('해답 검사가 복잡합니다. 고정 숫자를 더 추가하세요.');return}if(counted.found!==1){notify(counted.found===0?'정답이 없는 문제입니다.':'타임어택은 정답이 하나뿐인 내 문제에서만 시작할 수 있습니다.');return}const found=solutionFor(puz,{answers:EMPTY,notes:{}},false);sol=found.solution;if(!sol){notify('정답을 계산할 수 없습니다.');return}}
- state.timeAttackRuns[puz.id]={answers:EMPTY,notes:{},hintsUsed:0,adRevivesUsed:0,adHintUsed:0,bonusHints:0,lives:3,status:'running',startedAt:Date.now(),finishedAt:0,finalMs:0,solution:sol};state.playMode='time';hintPreview=null;state.noteMode=false;state.selected=Math.max(0,puz.givens.indexOf('0'));persist();renderPlay();}
+ state.timeAttackRuns[puz.id]={answers:EMPTY,notes:{},hintsUsed:0,adRevivesUsed:0,adHintUsed:0,bonusHints:0,lives:3,status:'running',activeMs:0,startedAt:Date.now(),finishedAt:0,finalMs:0,solution:sol};checkpointClocks();state.playMode='time';hintPreview=null;state.noteMode=false;state.selected=Math.max(0,puz.givens.indexOf('0'));persist();renderPlay();}
 function retryTimeAttack(){const puz=getPuzzle(state.activeId);if(!puz)return;endGameOver();startTimeAttack()}
 function switchPlayMode(mode){if(mode===state.playMode)return;
  const running=Object.values(state.timeAttackRuns).filter(r=>r.status==='running');
@@ -325,7 +346,7 @@ function finishSelfVideoAd(rewarded){let req=adRequest;if(!req||req.finished)ret
   const run=req.runRef;
   if(req.reward==='revive'){
    run.adRevivesUsed+=1;run.lives=1;
-   run.startedAt+=Math.max(0,Date.now()-(run.finishedAt||Date.now()));run.finishedAt=0;run.finalMs=0;run.status='running';endGameOver();
+   run.activeMs=run.finalMs;run.finishedAt=0;run.finalMs=0;run.status='running';checkpointClocks();endGameOver();
    hintPreview=null;persist();renderPlay();notify(appText("하트 1개를 받았어요.","You earned 1 heart."))
   }
  }else{persist();if(req.reward==='revive'&&timeMode()&&runOf(req.puzzleId)?.status==='lost')showGameOver();notify('영상을 끝까지 보면 하트를 받을 수 있어요.')}
@@ -344,7 +365,40 @@ function handleVideoEnded(){const req=adRequest,video=$('#selfAdVideo');if(!req|
  // A normal full playback is required. Seeking ahead or firing the ended event alone does not count.
  const playedEnough=Number.isFinite(duration)&&duration>0&&req.maxPlayed>=duration-0.45&&Date.now()-req.startedAt>=duration*750;
  finishSelfVideoAd(playedEnough);}
-function requestRewardAd(reward){if(adRequest){notify('광고 영상을 재생하는 중입니다.');return}
+let nativeAd=null;
+function requestNativeAd(kind){
+ if(nativeAd)return;
+ const id=state.activeId, timed=timeMode(), progress=timed?runOf(id):state.progress[id];
+ if(!progress || (kind==='revive'?(!timed||progress.status!=='lost'||progress.lives||progress.adRevivesUsed>=2):
+   ((timed&&progress.status!=='running')||progress.hintsUsed!==MAX_HINTS||progress.bonusHints)))return;
+ const token=crypto.randomUUID();
+ nativeAd={id,timed,progress,kind,token};
+ if(window.prompt('sudoku:reward',kind+'|'+token)!=='ok'){nativeAd=null;notify(appText('지금은 광고를 볼 수 없어요.','Ads are unavailable right now.'));return}
+ notify(appText('광고를 불러오는 중이에요.','Loading ad…'));
+}
+function mateAdStillValid(token){
+ const req=nativeAd;
+ return !!req && req.token===token && req.id===state.activeId && state.view==='play' && req.timed===timeMode() &&
+  req.progress===(req.timed?runOf(req.id):state.progress[req.id]);
+}
+function mateAdResult(token,status){
+ if(!nativeAd||nativeAd.token!==token)return;
+ const valid=mateAdStillValid(token),{progress,kind}=nativeAd;
+ nativeAd=null;
+ if(!valid)return;
+ if(status!=='earned'){
+  notify(status==='closed'?appText('보상을 받으려면 광고를 끝까지 봐 주세요.','Finish the ad to earn the reward.'):appText('광고를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.','Ad unavailable. Please try again later.'));
+  return;
+ }
+ if(kind==='revive' && progress.status==='lost' && !progress.lives && progress.adRevivesUsed<2){
+  progress.adRevivesUsed++;progress.lives=1;progress.activeMs=progress.finalMs;progress.finalMs=0;progress.finishedAt=0;progress.status='running';
+  endGameOver();checkpointClocks();notify(appText('하트 1개를 받았어요.','You earned 1 heart.'));
+ }else if(kind==='hint' && !progress.bonusHints && progress.hintsUsed===MAX_HINTS){
+  progress.bonusHints=1;notify(appText('힌트 1개를 받았어요.','You earned 1 hint.'));
+ }
+ persist();renderPlay();
+}
+function requestRewardAd(reward){if(window.MATE_ANDROID){requestNativeAd(reward);return}if(adRequest){notify('광고 영상을 재생하는 중입니다.');return}
  const puz=getPuzzle(state.activeId),run=runOf(state.activeId);
  if(!puz||!run||!timeMode()){notify('타임어택에서만 영상 보상을 받을 수 있습니다.');return}
  if(reward==='revive'){
@@ -357,10 +411,10 @@ function requestRewardAd(reward){if(adRequest){notify('광고 영상을 재생�
  $('#selfAdProgress').style.width='0%';
  video.play().catch(()=>{if(adRequest===req){finishSelfVideoAd(false);notify('영상을 재생할 수 없어요. 잠시 후 다시 시도해 주세요.')}});
 }
-function recordTimeAttackWin(puz,run){let when=Date.now();run.status='won';run.finishedAt=when;run.finalMs=Math.max(1,when-run.startedAt);let old=state.timeAttackBests[puz.id],improved=!old||run.finalMs<old.bestMs;
+function recordTimeAttackWin(puz,run){let when=Date.now();run.finalMs=Math.max(1,elapsedAttack(run));run.status='won';run.finishedAt=when;clockAnchors.delete(run);let old=state.timeAttackBests[puz.id],improved=!old||run.finalMs<old.bestMs;
  if(improved)state.timeAttackBests[puz.id]={bestMs:run.finalMs,at:when,title:puz.title,level:puz.level};persist();renderPlay();launchVictory(puz.title,formatElapsed(run.finalMs)+(improved?' — '+appText('새 최고 기록','New personal best'):''));}
 function loseTimeAttackLife(index){const run=runOf(state.activeId),puz=getPuzzle(state.activeId);if(!run||run.status!=='running')return;
- run.lives=Math.max(0,run.lives-1);if(!run.lives){run.status='lost';run.finishedAt=Date.now();run.finalMs=run.finishedAt-run.startedAt}
+ run.lives=Math.max(0,run.lives-1);if(!run.lives){run.finalMs=elapsedAttack(run);run.status='lost';run.finishedAt=Date.now();clockAnchors.delete(run)}
  persist();renderPlay();let boardCell=$(`#main .cell[data-index="${index}"]`);boardCell?.classList.add('hit-error');let hearts=$('#main .attack-hearts');hearts?.classList.add('damage-shake');hearts?.querySelector(`[data-life="${run.lives+1}"]`)?.classList.add('heart-lost');
  if(run.lives===0){setTimeout(()=>showGameOver(),400)}else notify(appText(`틀렸어요. 하트가 ${run.lives}개 남았어요.`,`Incorrect. ${run.lives===1?"1 heart":run.lives+" hearts"} left.`))}
 function showGameOver(){
@@ -378,7 +432,7 @@ function heartHtml(lives){return `<span class="attack-hearts" role="img" aria-la
 
 function showHint(){let puz=getPuzzle(state.activeId),r=timeMode()?runOf(puz.id):null,p=timeMode()?r:ensureProgress(puz.id);
  if(timeMode()&&(!r||r.status!=='running')){notify('먼저 타임어택을 시작해 주세요.');return}
- if((p.hintsUsed||0)>=MAX_HINTS){notify('이 문제의 힌트를 모두 사용했습니다.');return}
+ if((p.hintsUsed||0)>=MAX_HINTS+(p.bonusHints||0)){notify('이 문제의 힌트를 모두 사용했습니다.');return}
  if(isComplete(puz,p)){notify('이미 완성한 문제입니다.');return}
  let resolved=timeMode()?{solution:attackSolution(puz,r),limited:false}:solutionFor(puz,p,true);
  if(!resolved.solution){notify(resolved.limited?'정답을 찾는 데 시간이 많이 걸립니다. 고정 숫자를 더 넣어보세요.':'이 문제의 정답을 찾지 못했습니다. 고정 숫자를 확인하세요.');return}
@@ -410,16 +464,12 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
    <button type="button" class="primary" data-action="time-start">${run?appText('다시 도전하기','Try again'):appText('타임어택 시작','Start time attack')}</button>
    ${lost&&remaining>0?`<button type="button" class="ad-offer" data-action="ad-revive">${appText('영상 보고 하트 1개 받기','Watch for 1 heart')} <small>${appText(`${remaining}회 남음`,`${remaining} left`)}</small></button>`:''}</div>`;
  }
- const hints=p.hintsUsed||0;
- const hint=hintPreview?.id===puz.id?hintPreview:null;
- const hintDetails=hint?`<div class="hint-panel" role="status"><strong>${appText(
-  `${Math.floor(hint.index/9)+1}행 ${hint.index%9+1}열 · ${hint.digit}`,
-  `Row ${Math.floor(hint.index/9)+1}, column ${hint.index%9+1} · ${hint.digit}`
- )}</strong><button type="button" data-action="hint-close" class="secondary compact">닫기</button></div>`:'';
+ const hints=p.hintsUsed||0,remainingHints=MAX_HINTS+(p.bonusHints||0)-hints;
+ const canEarnHint=window.MATE_ANDROID && !remainingHints && !p.bonusHints && canEdit && !solved;
  const tools=`<div class="play-tools" role="group" aria-label="${appText('풀이 도구','Puzzle tools')}">
   <button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>${appIcon('note')}<span>${appText('메모','Notes')}</span></button>
   <button class="tool" data-action="${state.noteMode?'digit-note':'digit'}" data-digit="0" ${disabled||!canEdit?'disabled':''}>${appIcon('erase')}<span>${appText('지우기','Erase')}</span></button>
-  <button class="tool" data-action="show-hint" ${!canEdit||hints>=MAX_HINTS||solved?'disabled':''}>${appIcon('hint')}<span>${appText('힌트','Hint')} <small>${MAX_HINTS-hints}</small></span></button>
+  <button class="tool" data-action="${canEarnHint?'ad-hint':'show-hint'}" ${!canEdit||(!remainingHints&&!canEarnHint)||solved?'disabled':''}>${appIcon('hint')}<span>${canEarnHint?appText('광고로 힌트 +1','Ad: +1 hint'):appText('힌트','Hint')} ${canEarnHint?'':`<small>${remainingHints}</small>`}</span></button>
  </div>`;
  const other=`<div class="play-options"><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">${appIcon('check')}${appText('오류 표시','Show errors')}</button>
   <button class="tool" data-action="reset-progress">${appIcon('reset')}${timeMode()?appText('다시 도전','Restart run'):appText('초기화','Reset')}</button></div>`;
@@ -428,7 +478,7 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
   ${tabs}${top}
   <div class="statusbar"><span>${solved?appText('완료','Solved'):appText('풀이 진행률','Puzzle progress')}</span><strong>${count} / ${total}</strong></div>
   <div class="track"><div style="width:${total?100*count/total:100}%"></div></div>
-  ${gridHtml(puz,p,selected)}${hintDetails}${start}${tools}${keyboardHtml(state.noteMode,mask,disabled||!canEdit,false)}${other}
+  ${gridHtml(puz,p,selected)}${start}${tools}${keyboardHtml(state.noteMode,mask,disabled||!canEdit,false)}${other}
  </section>`;
  updateStopwatch();
 }
@@ -515,11 +565,11 @@ case 'mode-time':switchPlayMode('time');break;
 case 'time-start':startTimeAttack();break;
 case 'time-retry':retryTimeAttack();break;
 case 'time-normal':endGameOver();switchPlayMode('normal');break;
+case 'ad-hint':requestNativeAd('hint');break;
 case 'ad-revive':requestRewardAd('revive');break;
 case 'ad-cancel':stopSelfVideoAd();break;
 case 'filter':state.filter=el.dataset.filter;persist();renderCatalog();break;
 case 'show-hint':showHint();break;
-case 'hint-close':hintPreview=null;renderPlay();break;
 case 'new-custom':beginEditor(null);break;
 case 'resume-editor':state.view='editor';persist();render();break;
 case 'edit-custom':beginEditor(id);break;
@@ -578,15 +628,18 @@ function pvpCheckMilestones(previous,now){const m=pvp.match;if(!m||m.finished)re
 }
 function pvpGameReason(m,idx){if(m.players[idx].lives===0)return '하트 소진';if(m.players[1-idx].lives===0)return '상대 하트 소진';return m.reason||'경기 종료'}
 function pvpGameOutcome(){const m=pvp.match;if(!m||!m.finished)return null;const i=pvpLocalIdx();return m.winner===null?'tie':m.winner===i?'win':'lose'}
-function pvpShowOutcome(){const m=pvp.match;if(!m?.finished)return;const screen=$('#pvpOutcome');if(!screen)return;
+function pvpShowOutcome(){const m=pvp.match;if(!m?.finished)return;$('#pvpOutcome [data-action="pvp-solo"]').hidden=false;$('#pvpOutcome [data-action="pvp-outcome-close"]').textContent=appText('결과 보기','View result');const screen=$('#pvpOutcome');if(!screen)return;
  if(pvp.outcomeShown===m.id)return;
  pvp.outcomeShown=m.id;const result=pvpGameOutcome();const card=$('#pvpOutcomeCard');card.className='pvp-outcome-card '+result;
  $('#pvpOutcomeIcon').textContent=result==='win'?'🏆':result==='lose'?'💔':'🤝';$('#pvpOutcomeTitle').textContent=result==='win'?'승리!':result==='lose'?'패배':'무승부';
  const me=m.players[pvpLocalIdx()],op=m.players[pvpOtherIdx()];$('#pvpOutcomeDetail').textContent=`${pvpGameReason(m,pvpLocalIdx())}\n나 ${me.score}점  상대 ${op.score}점`;
- const confetti=$('#pvpConfetti');confetti.innerHTML='';
- if(result==='win'){const colors=['#f5b843','#5a8ff6','#8c6cf3','#54c5d2','#fd749d','#86d46e'];for(let i=0;i<56;i++){let a=document.createElement('span');a.style.setProperty('--x',Math.random()*100+'%');a.style.setProperty('--dx',(Math.random()*230-115)+'px');a.style.setProperty('--d',2.6+Math.random()*2+'s');a.style.setProperty('--delay',Math.random()*0.75+'s');a.style.setProperty('--c',colors[i%colors.length]);confetti.appendChild(a)}}
+ pvpConfetti(result==='win');
  screen.hidden=false;
 }
+function pvpConfetti(won){
+ const confetti=$('#pvpConfetti');confetti.innerHTML='';
+ if(won){const colors=['#f5b843','#5a8ff6','#8c6cf3','#54c5d2','#fd749d','#86d46e'];for(let i=0;i<56;i++){let a=document.createElement('span');a.style.setProperty('--x',Math.random()*100+'%');a.style.setProperty('--dx',(Math.random()*230-115)+'px');a.style.setProperty('--d',2.6+Math.random()*2+'s');a.style.setProperty('--delay',Math.random()*0.75+'s');a.style.setProperty('--c',colors[i%colors.length]);confetti.appendChild(a)}}
+ }
 function pvpHideOutcome(){$('#pvpOutcome').hidden=true;$('#pvpConfetti').innerHTML=''}
 function pvpArchiveMatch(){const m=pvp.match;if(!m?.finished)return null;const idx=pvpLocalIdx(),me=m.players[idx],op=m.players[1-idx];const soloId='cduel_'+m.id;
  // This is the same generated puzzle, with the correct digits and notes from the duel.
@@ -623,7 +676,7 @@ function pvpDecodePunycodeLabel(label){if(!/^xn--/i.test(label))return label;
  function adapt(delta,count,first){delta=first?Math.floor(delta/700):Math.floor(delta/2);delta+=Math.floor(delta/count);let k=0;while(delta>455){delta=Math.floor(delta/35);k+=36}return k+Math.floor(36*delta/(delta+38))}
  try{while(pos<source.length){let old=i,w=1,k=36;for(;;k+=36){if(pos>=source.length)throw Error('Invalid label');let v=digit(source.charCodeAt(pos++));if(v<0)throw Error('Invalid digit');i+=v*w;const t=k<=bias?1:k>=bias+26?26:k-bias;if(v<t)break;w*=36-t;if(w>0x7fffffff)throw Error('Out of range')}const count=output.length+1;bias=adapt(i-old,count,old===0);n+=Math.floor(i/count);i%=count;if(n>0x10ffff)throw Error('Invalid code point');output.splice(i,0,n);i++}return String.fromCodePoint(...output)}catch(e){return label}}
 function pvpUnicodeHost(host){return host.split('.').map(pvpDecodePunycodeLabel).join('.')}
-function pvpShareURL(){if(!pvp.roomCode)return '';try{const u=new URL(location.href);if(!/^https?:$/.test(u.protocol))return '';u.searchParams.set('room',pvp.roomCode);u.hash='';const host=pvpUnicodeHost(u.hostname);return `${u.protocol}//${host}${u.port?':'+u.port:''}${u.pathname}${u.search}`}catch(e){return ''}}
+function pvpShareURL(){if(!pvp.roomCode)return '';try{const u=new URL(location.href);if(!/^https?:$/.test(u.protocol))return '';if(window.MATE_ANDROID)u.pathname='/';u.searchParams.set('room',pvp.roomCode);u.hash='';const host=pvpUnicodeHost(u.hostname);return `${u.protocol}//${host}${u.port?':'+u.port:''}${u.pathname}${u.search}`}catch(e){return ''}}
 async function pvpCopyShare(){const url=pvpShareURL();if(!url){notify('공유 링크는 HTTPS 웹사이트에 게임을 게시한 후 복사할 수 있습니다.');return}
  try{await navigator.clipboard.writeText(url);notify('친구에게 보낼 링크를 복사했습니다.')}catch(e){let box=$('#pvpShareURL');if(box){box.focus();box.select();document.execCommand('copy');notify('공유 링크를 선택했습니다.')}else notify('링크를 복사하지 못했습니다.')}
 }
@@ -850,10 +903,13 @@ function pvpResultHtml(){const m=pvp.match;if(!m?.finished)return '';
  const outcome=pvpGameOutcome(),mine=m.players[pvpLocalIdx()],other=m.players[pvpOtherIdx()],title=outcome==='win'?'승리':outcome==='lose'?'패배':'무승부';
  return `<div class="pvp-finished ${outcome==='lose'?'lose':outcome==='tie'?'tie':''}"><strong>${title}</strong>${escapeHtml(m.reason||'경기 종료')}<div>내 점수 ${mine.score}점   상대 ${other.score}점</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">일반 모드에서 이어 풀기</button><button class="secondary" data-action="pvp-new">새 대결</button></div>`
 }
+function pvpHeartIcons(lives,maxLives,lostLife){
+ return Array.from({length:maxLives},(_,i)=>`<svg viewBox="0 0 24 24" class="${i>=lives?'empty':''} ${i===lostLife-1?'heart-lost':''}" aria-hidden="true"><path d="M20.8 4.6a5.7 5.7 0 0 0-8.1 0L12 5.3l-.7-.7a5.7 5.7 0 0 0-8.1 8.1L12 21l8.8-8.3a5.7 5.7 0 0 0 0-8.1Z"/></svg>`).join('');
+}
 function pvpRenderMatch(){const m=pvp.match,idx=pvpLocalIdx(),self=m.players[idx],op=m.players[1-idx],cfg=PVP_LEVELS[m.level],active=!m.finished&&!pvpBeforeStart()&&self.lives>0&&!self.done;
  const scoreCard=(p,local)=>{
   const who=local?idx:1-idx;const recentlyHit=pvp.lastLifeLoss?.who===who&&Date.now()-pvp.lastLifeLoss.at<750;
-  const hearts=Array.from({length:m.maxLives},(_,i)=>`<svg viewBox="0 0 24 24" class="${i>=p.lives?'empty':''} ${recentlyHit&&i===pvp.lastLifeLoss.life-1?'heart-lost':''}" aria-hidden="true"><path d="M20.8 4.6a5.7 5.7 0 0 0-8.1 0L12 5.3l-.7-.7a5.7 5.7 0 0 0-8.1 8.1L12 21l8.8-8.3a5.7 5.7 0 0 0 0-8.1Z"/></svg>`).join('');
+  const hearts=pvpHeartIcons(p.lives,m.maxLives,recentlyHit?pvp.lastLifeLoss.life:0);
   return `<div class="pvp-score ${local?'me':''} ${recentlyHit?'life-hit':''}"><span class="name">${local?'나':'상대'}   ${escapeHtml(p.name)}</span><strong class="points">${p.score.toLocaleString('ko-KR')}</strong><div class="pvp-hearts" aria-label="남은 하트 ${p.lives}개">${hearts}</div></div>`
  };
  return `<div class="pvp-match-heading"><div><span class="minititle">실시간 2인 대결</span><h2>${escapeHtml(cfg.name)} 스도쿠</h2><p>입력 ${m.turnMs/1000}초   경기 ${Math.round((m.endAt-m.startedAt)/60000)}분</p></div><span class="chip ${m.finished?'hard':''}">${m.finished?'대결 종료':'진행 중'}</span></div><div class="pvp-timers"><div class="pvp-timer-card"><span>남은 경기 시간</span><strong id="pvpMatchTime">00:00</strong></div><div class="pvp-timer-card move"><span>숫자 입력까지</span><strong id="pvpTurnTime">00:00</strong><div class="pvp-turnbar"><div id="pvpTurnProgress"></div></div></div></div><div class="pvp-scoreboards">${scoreCard(self,true)}${scoreCard(op,false)}</div><div class="pvp-board-wrap">${pvpBoardHtml()}</div>${pvpResultHtml()}<div class="pvp-numberpad">${Array.from({length:9},(_,i)=>`<button class="key" type="button" data-action="pvp-digit" data-digit="${i+1}" ${active?'':'disabled'}>${i+1}</button>`).join('')}</div><div class="pvp-btnrow"><button class="tool" data-action="pvp-erase" ${active?'':'disabled'}>지우기</button><button class="tool ${pvp.noteMode?'active':''}" data-action="pvp-note" ${active?'':'disabled'}>메모 ${pvp.noteMode?'켜짐':'꺼짐'}</button><button class="tool" data-action="pvp-leave">${m.finished?'연결 종료':'나가기'}</button></div>`

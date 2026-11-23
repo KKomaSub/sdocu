@@ -80,10 +80,12 @@ async function multiCreateRoom(){
   attempt();
  }catch(e){pvp.creating=false;pvp.conn='disconnected';pvpStatus(multiT('연결 준비에 실패했습니다.','Connection preparation failed.'))}
 }
-function multiSnapshot(event=''){
+function multiSnapshot(event='',hit=null){
  const m=pvp.match;if(!m)return;
- for(const dc of multi.channels.values())multiWire(dc,{type:'multi-sync',match:m,hostNow:Date.now(),event});
+ for(const dc of multi.channels.values())multiWire(dc,{type:'multi-sync',match:m,hostNow:Date.now(),event,hit});
  pvpRender();
+ if(hit?.group===multiGroup())pvpAnimateWrongCell(hit.index);
+ pvpShowOutcome();
 }
 function multiStart(){
  if(!multi.active||!multi.host||pvp.match)return;
@@ -111,10 +113,34 @@ function multiValid(m){
  if(f.team)return m.groups.every((_,i)=>m.players.filter(p=>p.team===i).length===2);
  return m.players.every((p,i)=>p.team===i);
 }
-function multiEnd(reason,winner=null){
+// Each knockout takes the lowest remaining place, independent of later scores.
+function multiEliminate(m,id){
+ const group=m.groups[id];
+ if(group.outRank)return;
+ group.lives=0;
+ group.outRank=m.groups.filter(other=>other.lives>0).length+1;
+}
+function multiRanking(m){
+ const rows=m.groups.map((group,id)=>({group,id}));
+ const compare=(a,b)=>{
+  if(a.group.outRank||b.group.outRank)return (a.group.outRank||0)-(b.group.outRank||0);
+  if(m.finished && m.winner!=null && (a.id===m.winner || b.id===m.winner))return Number(b.id===m.winner)-Number(a.id===m.winner);
+  return b.group.score-a.group.score;
+ };
+ rows.sort(compare);
+ rows.forEach((row,i)=>{
+  row.rank=row.group.outRank || (i && compare(rows[i-1],row)===0?rows[i-1].rank:i+1);
+ });
+ return rows;
+}
+function multiScoreWinner(m){
+ const leaders=multiRanking(m).filter(row=>row.rank===1);
+ return leaders.length===1?leaders[0].id:null;
+}
+function multiEnd(reason,winner=null,hit=null){
  const m=pvp.match;if(!multi.active||!multi.host||!m||m.finished)return;
- if(winner===null){const max=Math.max(...m.groups.map(g=>g.score)),leaders=m.groups.map((g,i)=>g.score===max?i:-1).filter(i=>i>=0);winner=leaders.length===1?leaders[0]:null}
- m.finished=true;m.reason=reason;m.winner=winner;multiSnapshot(reason);pvpSaveResult();pvpShowOutcome();
+ if(winner===null)winner=multiScoreWinner(m);
+ m.finished=true;m.reason=reason;m.winner=winner;multiSnapshot(reason,hit);pvpSaveResult();
 }
 function multiTick(){
  const m=pvp.match;if(!multi.active||!multi.host||!m||m.finished||Date.now()<m.startedAt)return;
@@ -135,16 +161,21 @@ function multiMove(seat,index,digit){
  // Both teammates may submit the same cell at almost the same time: acknowledge without scoring twice.
  if(g.answers[index]!=='0'){multiSnapshot();return}
  const now=Date.now(),speed=Math.max(0,Math.min(10,Math.floor(10*Math.max(0,g.deadline-now)/m.turnMs)));
+ let hit=null;
  const correct=String(digit)===multi.solution[index];
  if(correct){g.answers=setAt(g.answers,index,String(digit));g.mistakes=setAt(g.mistakes,index,'0');g.score+=10+speed;g.correct++;if(g.correct>=m.givens.split('').filter(c=>c==='0').length){g.done=true;g.score+=30}}
- else{g.mistakes=setAt(g.mistakes,index,String(digit));g.wrong++;g.score-=17;g.lives=Math.max(0,g.lives-1)}
+ else{
+  hit={group:m.players[seat].team,index};
+  pvp.lastLifeLoss={who:hit.group,life:g.lives,at:now};
+  g.mistakes=setAt(g.mistakes,index,String(digit));g.wrong++;g.score-=17;g.lives--;
+  if(!g.lives)multiEliminate(m,hit.group);
+ }
  g.deadline=now+m.turnMs;
  if(g.done){multiEnd(multiT('퍼즐 먼저 완성','First to finish'),m.players[seat].team);return}
  const alive=m.groups.map((x,i)=>x.lives>0?i:-1).filter(i=>i>=0);
- if(alive.length===1){multiEnd(multiT('하트 소진','Out of hearts'),alive[0]);return}
- if(alive.length===0){multiEnd(multiT('하트 소진','Out of hearts'));return}
- multiSnapshot(correct?m.players[seat].name+' ✓':m.players[seat].name+' ✕');
- if(!correct&&seat===0)pvpAnimateWrongCell(index);
+ if(alive.length===1){multiEnd(multiT('하트 소진','Out of hearts'),alive[0],hit);return}
+ if(alive.length===0){multiEnd(multiT('하트 소진','Out of hearts'),null,hit);return}
+ multiSnapshot(correct?m.players[seat].name+' ✓':m.players[seat].name+' ✕',hit);
 }
 function multiClear(seat,index){
  const m=pvp.match;if(!multi.active||!multi.host||!m||m.finished||Date.now()<m.startedAt
@@ -157,8 +188,8 @@ function multiDrop(seat){
  if(!m){multi.names[seat]=null;multiLobby();return}
  if(m.finished||m.players[seat].left)return;
  m.players[seat].left=true;const id=m.players[seat].team;
+ multiEliminate(m,id);
  if(m.format==='team4'){multiEnd(multiT('팀원 연결 종료','A teammate left'),1-id);return}
- m.groups[id].lives=0;
  const alive=m.groups.map((g,i)=>g.lives>0?i:-1).filter(i=>i>=0);
  if(alive.length===1)multiEnd(multiT('참가자 연결 종료','A player left'),alive[0]);else multiSnapshot(multiT('참가자 연결 종료','A player left'));
 }
@@ -166,7 +197,7 @@ const multiOldFinishedLocal=pvpFinishedLocal;
 pvpFinishedLocal=function(reason,winner){
  if(!multi.active||!pvp.match?.format)return multiOldFinishedLocal(reason,winner);
  const m=pvp.match;if(!m||m.finished)return;
- m.finished=true;m.reason=multiT('방장 연결 종료','Host disconnected');m.winner=null;
+ multiEliminate(m,m.players[0].team);m.finished=true;m.reason=multiT('방장 연결 종료','Host disconnected');m.winner=multiScoreWinner(m);
  pvpSaveResult();if(state.view==='pvp')pvpRender();pvpShowOutcome();
 };
 const multiOldReceived=pvpReceived;
@@ -184,11 +215,13 @@ pvpReceived=function(m){
  }
  if(m?.type==='multi-sync'&&pvp.role==='guest'&&multi.active){
   if(!multiValid(m.match)||!pvp.match||m.match.id!==pvp.match.id)return;
-  const before=pvp.match.groups[multiGroup()];
+  const previous=pvp.match;
+  const hurt=m.match.groups.findIndex((g,i)=>g.lives<previous.groups[i].lives);
+  if(hurt>=0)pvp.lastLifeLoss={who:hurt,life:previous.groups[hurt].lives,at:Date.now()};
   pvp.match=m.match;pvp.clockOffset=(Number(m.hostNow)||Date.now())-Date.now();multi.pending=false;
   if(pvp.match.finished)pvpSaveResult();
-  pvpRender();if(before?.lives>pvp.match.groups[multiGroup()]?.lives)pvpAnimateWrongCell(pvp.selected);
-  if(pvp.match.finished)pvpShowOutcome();return;
+  pvpRender();if(hurt===multiGroup() && Number.isInteger(m.hit?.index))pvpAnimateWrongCell(m.hit.index);
+  pvpShowOutcome();return;
  }
  multiOldReceived(m);
 };

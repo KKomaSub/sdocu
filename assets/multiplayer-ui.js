@@ -18,7 +18,9 @@ const multiOldOutcomeCalc=pvpGameOutcome;
 pvpGameOutcome=function(){
  if(!multi.active||!pvp.match?.format)return multiOldOutcomeCalc();
  const m=pvp.match;
- return !m.finished?null:m.winner===null?'tie':m.winner===multiGroup()?'win':'lose';
+ if(!m.finished)return null;
+ const mine=multiRanking(m).find(row=>row.id===multiGroup());
+ return mine.rank!==1?'lose':m.winner===null?'tie':'win';
 };
 const multiOldArchive=pvpArchiveMatch;
 pvpArchiveMatch=function(){
@@ -44,25 +46,38 @@ pvpSaveResult=function(){
  if(multi.saved||!pvp.match.finished)return;
  multi.saved=true;pvpArchiveMatch();
 };
+const rankLabel=n=>multiT(n+'위','#'+n);
+function rankingLines(m){
+ return multiRanking(m).map(({id,rank,group})=>{
+  const names=m.players.filter(player=>player.team===id).map(player=>player.name).join(' + ');
+  return rankLabel(rank)+'  '+names+'   '+group.score+multiT('점',' pts');
+ }).join('\n');
+}
 const multiOldShowOutcome=pvpShowOutcome;
 pvpShowOutcome=function(){
  if(!multi.active||!pvp.match?.format)return multiOldShowOutcome();
- const m=pvp.match;if(!m.finished||pvp.outcomeShown===m.id)return;
- pvp.outcomeShown=m.id;pvpHideCountdown();
- const result=pvpGameOutcome(),my=m.groups[multiGroup()];
- const el=$('#pvpOutcome'),card=$('#pvpOutcomeCard');if(!el||!card)return;
- card.className='pvp-outcome-card '+result;
- $('#pvpOutcomeIcon').textContent=result==='win'?'🏆':result==='lose'?'💔':'🤝';
- $('#pvpOutcomeTitle').textContent=result==='win'?multiT('승리!','Victory!'):result==='lose'?multiT('패배','Defeat'):multiT('무승부','Draw');
- $('#pvpOutcomeDetail').textContent=multiFormatTitle(m.format)+'\n'+multiT('내 점수 ','My score ')+my.score+'\n'+m.reason;
- $('#pvpConfetti').innerHTML='';el.hidden=false;
+ const m=pvp.match,group=m.groups[multiGroup()];
+ if(!m.finished && !group.outRank)return;
+ const key=m.id+(m.finished?':final':':out');
+ if(pvp.outcomeShown===key)return;
+ pvp.outcomeShown=key;
+ const result=m.finished?pvpGameOutcome():'lose';
+ const rank=multiRanking(m).find(row=>row.id===multiGroup()).rank;
+ $('#pvpOutcomeCard').className='pvp-outcome-card '+result;
+ $('#pvpOutcomeIcon').textContent=result==='win'?'🏆':result==='tie'?'🤝':'💔';
+ $('#pvpOutcomeTitle').textContent=(m.format==='team4'?multiT('우리 팀 ','Your team '):'')+rankLabel(rank);
+ $('#pvpOutcomeDetail').textContent=m.finished?rankingLines(m):multiT('하트를 모두 썼어요. 남은 경기를 관전할 수 있어요.','You’re out of hearts. You can watch the rest of the match.');
+ $('#pvpOutcome [data-action="pvp-solo"]').hidden=!m.finished;
+ $('#pvpOutcome [data-action="pvp-outcome-close"]').textContent=m.finished?multiT('결과 보기','View results'):multiT('관전하기','Spectate');
+ pvpConfetti(result==='win');
+ $('#pvpOutcome').hidden=false;
 };
 const multiOldResult=pvpResultHtml;
 pvpResultHtml=function(){
  if(!multi.active||!pvp.match?.format)return multiOldResult();
  const m=pvp.match;if(!m.finished)return '';
  const g=m.groups[multiGroup()],result=pvpGameOutcome(),word=result==='win'?multiT('승리','Victory'):result==='lose'?multiT('패배','Defeat'):multiT('무승부','Draw');
- return '<div class="pvp-finished"><strong>'+word+'</strong><div>'+multiT('점수','Score')+' '+g.score+'</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">'+multiT('일반 모드에서 이어 풀기','Continue in Normal mode')+'</button><button class="secondary" data-action="pvp-new">'+multiT('새 대결','New match')+'</button></div>';
+ return '<div class="pvp-finished"><strong>'+word+'</strong><div class="rank-list">'+escapeHtml(rankingLines(m))+'</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">'+multiT('일반 모드에서 이어 풀기','Continue in Normal mode')+'</button><button class="secondary" data-action="pvp-new">'+multiT('새 대결','New match')+'</button></div>';
 };
 const multiOldRenderMatch=pvpRenderMatch;
 pvpRenderMatch=function(){
@@ -71,10 +86,13 @@ pvpRenderMatch=function(){
  const total=m.givens.split('').filter(v=>v==='0').length;
  const levelName=PVP_LEVELS[m.level]?.name||m.level;
  const levelLabel=window.SUDOKU_I18N?.translate(levelName)??levelName;
+ const ranks=multiRanking(m);
  const scorecards=m.groups.map((g,i)=>{
   const names=m.players.filter(p=>p.team===i).map(p=>escapeHtml(p.name)).join(' + ');
   const label=m.format==='team4'?multiT('팀 ','Team ')+(i+1):names;
-  return '<div class="multi-card '+(team===i?'mine':'')+' '+(m.format==='team4'?(i?'red':'blue'):'')+'"><div class="multi-card-top"><strong>'+label+'</strong><b>'+g.score.toLocaleString(window.SUDOKU_LANG==='en'?'en-US':'ko-KR')+' '+multiT('점','pts')+'</b></div>'+(m.format==='team4'?'<small>'+names+'</small>':'')+'<div class="multi-card-hearts">'+Array.from({length:m.maxLives},(_,j)=>j<g.lives?'❤️':'♡').join('')+'</div><span class="multi-card-progress">'+g.correct+'/'+total+'</span></div>';
+  const hit=pvp.lastLifeLoss?.who===i && Date.now()-pvp.lastLifeLoss.at<750?pvp.lastLifeLoss.life:0;
+  const rank=ranks.find(row=>row.id===i).rank;
+  return '<div class="multi-card '+(hit?'life-hit ':'')+(team===i?'mine':'')+' '+(m.format==='team4'?(i?'red':'blue'):'')+'"><div class="multi-card-top"><strong>'+label+'</strong><b>'+g.score.toLocaleString(window.SUDOKU_LANG==='en'?'en-US':'ko-KR')+' '+multiT('점','pts')+'</b></div>'+(m.format==='team4'?'<small>'+names+'</small>':'')+'<div class="pvp-hearts" role="img" aria-label="'+multiT('남은 하트 '+g.lives+'개',g.lives+' hearts left')+'">'+pvpHeartIcons(g.lives,m.maxLives,hit)+'</div><span class="multi-card-progress">'+rankLabel(rank)+' · '+g.correct+'/'+total+'</span></div>';
  }).join('');
  const teamInfo=m.format==='team4'?'<p class="multi-team-info">'+multiT('팀원 두 명이 같은 판과 정답·점수·하트를 공유하며 동시에 풀 수 있습니다.','Both teammates solve the same board at once, sharing answers, points and hearts.')+'</p>':'';
  const digits=Array.from({length:9},(_,i)=>'<button class="key" type="button" data-action="pvp-digit" data-digit="'+(i+1)+'" '+(ready?'':'disabled')+'>'+(i+1)+'</button>').join('');
@@ -101,12 +119,10 @@ pvpLeaveMatch=function(){
  const m=pvp.match;
  if(!m.finished){
   if(multi.host){
-   const opponent=m.groups.map((g,i)=>i!==multiGroup()?i:-1).filter(i=>i>=0);
-   const top=opponent.length?Math.max(...opponent.map(i=>m.groups[i].score)):-Infinity;
-   const leaders=opponent.filter(i=>m.groups[i].score===top);
-   multiEnd(multiT('방장이 나갔습니다.','Host left.'),leaders.length===1?leaders[0]:null);
+   multiEliminate(m,multiGroup());
+   multiEnd(multiT('방장이 나갔습니다.','Host left.'));
   }else{
-   multiWire(pvp.dc,{type:'multi-forfeit'});m.finished=true;m.reason=multiT('대결에서 나갔습니다.','You left.');m.winner=null;pvpSaveResult();pvpRender();pvpShowOutcome();
+   multiWire(pvp.dc,{type:'multi-forfeit'});multiEliminate(m,multiGroup());m.finished=true;m.reason=multiT('대결에서 나갔습니다.','You left.');m.winner=multiScoreWinner(m);pvpSaveResult();pvpRender();pvpShowOutcome();
   }
  }
  const peer=pvp.peer;setTimeout(()=>{if(pvp.match===m&&pvp.peer===peer)pvpStopTransport(true)},350);

@@ -27,11 +27,8 @@ const appWrite=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 const friendSetup={players:2,team:false,level:'medium',hearts:3,turnSeconds:20,matchMinutes:11,advanced:false};
 let appWaiting;
 let waitingRequest=null;
-let nearby=false;
-let nearbyRequest=false;
-let nearbyRoom=null;
-let nearbyWriting=false;
-let nearbyRefreshAt=0;
+let tapMode='';
+let tapFilledCode='';
 let guideStep=0;
 let guideReturn=null;
 let pendingInvite=null;
@@ -109,10 +106,12 @@ const guideSlides=[
  {icon:'friends',title:appText('같은 문제로 겨뤄 보세요','Race on the same puzzle'),body:appText('친구와는 4자리 방 번호로 만나고, 월드 매칭에서는 상대를 자동으로 찾아요.','Use a 4-digit room code with friends, or let World Match find an opponent.')},
 ];
 function appRenderGuide(){
+ const privacy=window.MATE_ANDROID && window.prompt('sudoku:privacy','status')==='required'
+  ?'<button type="button" class="guide-skip" data-app-action="privacy">'+appText('광고 개인정보 설정','Ad privacy options')+'</button>':'';
  const step=guideSlides[guideStep];
  const next=guideStep===guideSlides.length-1?appText('시작하기','Start playing'):appText('다음','Next');
  $('#appGuide').innerHTML='<div class="guide-handle" aria-hidden="true"></div><div class="guide-head"><div class="guide-orb">'+appIcon(step.icon)+'</div><button type="button" class="guide-skip" data-app-action="guide-close">'+
-  appText('건너뛰기','Skip')+'</button></div><h2 id="appGuideTitle">'+step.title+'</h2><p>'+step.body+'</p>'+
+  appText('건너뛰기','Skip')+'</button></div>'+privacy+'<h2 id="appGuideTitle">'+step.title+'</h2><p>'+step.body+'</p>'+
   '<div class="guide-progress" aria-label="'+(guideStep+1)+' / '+guideSlides.length+'">'+guideSlides.map((_,i)=>'<i class="'+(i===guideStep?'current':'')+'"></i>').join('')+
   '</div><button type="button" class="primary app-primary guide-next" data-app-action="guide-next">'+next+'</button>';
 }
@@ -166,10 +165,10 @@ function friendSettings(){
 }
 function friendJoinForm(){
  return '<form class="lobby-card join-room" id="appJoinRoom"><div class="join-title"><h2>'+appText('방 참가','Join a room')+'</h2>'+
-  '<span id="nearbyBadge" class="queue-tag" role="status" hidden>'+appText('주변 방 발견','Nearby room found')+'</span></div>'+
+  '<span id="nearbyBadge" class="queue-tag" role="status" hidden>'+appText('방 번호를 받았어요','Room code received')+'</span></div>'+
   '<div class="room-join-row"><label class="sr-only" for="pvpRoomCode">'+appText('4자리 방 번호','4-digit room code')+'</label>'+
   '<input class="text-input room-code-input" id="pvpRoomCode" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required placeholder="0000" value="'+escapeHtml(pvp.joinCode)+'">'+
-  '<button class="primary app-primary" type="submit">'+appText('입장','Join')+'</button></div></form>';
+  '<button class="primary app-primary" type="submit">'+appText('입장','Join')+'</button></div><small class="room-note" data-tap-tip hidden>'+appText('휴대폰 뒷면을 맞대면 방 번호가 입력돼요.','Touch the backs of your phones to fill in the code.')+'</small></form>';
 }
 function friendRoomWaiting(){
  const isHost=pvp.role==='host';
@@ -221,8 +220,8 @@ function appUpdateLobby(){
   el.classList.toggle('is-live',Number.isInteger(count)&&count>0);
  });
  const badge=$('#nearbyBadge');
- if(badge)badge.hidden=!nearby;
- $('.join-room')?.classList.toggle('nearby-room',nearby);
+ if(badge)badge.hidden=!tapFilledCode;
+ $('.join-room')?.classList.toggle('nearby-room',Boolean(tapFilledCode));
 }
 async function appRefreshWaiting(){
  if(document.hidden||!(state.view==='home'||state.view==='pvp'&&pvp.mode==='random'))return;
@@ -240,53 +239,53 @@ async function appRefreshWaiting(){
  })();
  return waitingRequest;
 }
-function appNearbyAPI(body){
- const options={cache:'no-store',signal:AbortSignal.timeout(5000)};
- if(body)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),keepalive:body.action==='close'});
- return fetch('/api/nearby',options);
+function syncTapRoom(){
+ if(!window.MATE_ANDROID)return;
+ const lobby=!document.hidden && state.view==='pvp' && pvp.mode==='friend' && !pvp.match;
+ let mode='off';
+ if(lobby && !pvp.role && $('#appJoinRoom'))mode='read';
+ if(lobby && pvp.role==='host' && pvp.conn==='waiting' && pvp.peer?.open && !pvp.peer.disconnected && /^\d{4}$/.test(pvp.roomCode))mode=pvp.roomCode;
+ if(mode!==tapMode){
+  tapMode=mode;
+  window.MATE_NFC=window.prompt('sudoku:nfc',mode)==='on';
+ }
+ const tip=$('[data-tap-tip]');
+ if(tip)tip.hidden=!window.MATE_NFC || !!tapFilledCode;
 }
-async function appNearbyLease(){
- if(!/^https?:$/.test(location.protocol)||nearbyWriting)return;
- const hosting=state.view==='pvp'&&pvp.mode==='friend'&&pvp.role==='host'&&pvp.conn==='waiting'&&pvp.roomCode&&!pvp.match;
- const code=hosting?pvp.roomCode:'';
- if(!code&&!nearbyRoom)return;
- if(nearbyRoom?.code===code&&Date.now()-nearbyRefreshAt<12000)return;
- nearbyWriting=true;
- try{
-  if(nearbyRoom&&nearbyRoom.code!==code){
-   const prior=nearbyRoom;
-   nearbyRoom=null;
-   await appNearbyAPI({action:'close',lease:prior.lease}).catch(()=>{});
-  }
-  if(code){
-   if(!nearbyRoom)nearbyRoom={code,lease:crypto.randomUUID()};
-   const response=await appNearbyAPI({action:'publish',lease:nearbyRoom.lease});
-   if(response.ok)nearbyRefreshAt=Date.now();
-  }
- }catch{}finally{nearbyWriting=false}
+function receiveTapRoom(code){
+ const field=$('#pvpRoomCode');
+ if(!window.MATE_ANDROID || tapMode!=='read' || document.hidden || !field || !/^\d{4}$/.test(code))return;
+ if(field.value && field.value!==tapFilledCode)return;
+ tapFilledCode=code;
+ pvp.joinCode=code;
+ field.value=code;
+ appUpdateLobby();
+ syncTapRoom();
 }
-async function appCheckNearby(){
- if(nearbyRequest||document.hidden||!$('#appJoinRoom')||!/^https?:$/.test(location.protocol))return;
- nearbyRequest=true;
- try{
-  const response=await appNearbyAPI();
-  const data=response.ok?await response.json():null;
-  nearby=data?.nearby===true;
- }catch{nearby=false}finally{nearbyRequest=false;appUpdateLobby()}
+function mateBack(){
+ if($('#appGuide').open){appCloseGuide();return true}
+ if($('#appDialog').open){closeDialog();return true}
+ if(!$('#selfAdOverlay').hidden){stopSelfVideoAd();return true}
+ if(!$('#gameOver').hidden){endGameOver();return true}
+ if(!$('#celebration').hidden){$('#celebration [data-action="celebration-close"]').click();return true}
+ if(!$('#pvpOutcome').hidden){pvpHideOutcome();return true}
+ if(state.view==='home')return false;
+ const back=$('#appBack');
+ switchView($('#detailBar').hidden?'home':back.dataset.view);
+ return true;
 }
 function appOpenLobby(mode){
  pvp.mode=mode;
- if(mode==='friend'){nearby=false;appFriendSettingsToGame()}
+ if(mode==='friend'){tapFilledCode='';appFriendSettingsToGame()}
  finishAppNavigation('pvp');
- if(mode==='friend')appCheckNearby();
- else appRefreshWaiting();
+ if(mode==='random')appRefreshWaiting();
 }
 function appResetLobby(){
  const mode=pvp.mode;
  pvpConnectionClose();
  pvp.mode=mode;
  appOpenLobby(mode);
- appNearbyLease();
+ syncTapRoom();
 }
 function appFriendSettingsToGame(){
  pvp.format=friendSetup.players===4&&friendSetup.team?'team4':'solo'+friendSetup.players;
@@ -316,6 +315,7 @@ document.addEventListener('click',event=>{
   case 'solo':switchView('catalog');break;
   case 'friends':appOpenLobby('friend');break;
   case 'world':appOpenLobby('random');break;
+  case 'privacy':window.prompt('sudoku:privacy','show');break;
   case 'guide':appOpenGuide();break;
   case 'guide-next':
    if(++guideStep===guideSlides.length)appCloseGuide();
@@ -334,6 +334,7 @@ document.addEventListener('click',event=>{
 });
 document.addEventListener('input',event=>{
  const el=event.target;
+ if(el.id==='pvpRoomCode'){tapFilledCode='';appUpdateLobby();syncTapRoom()}
  if(el.id==='pvpNickname')appWrite(nicknameKey,pvp.name);
  if(pvp.mode!=='friend')return;
  if(el.id==='pvpLevel'){
@@ -351,17 +352,14 @@ document.addEventListener('submit',event=>{
 });
 $('#appGuide').addEventListener('cancel',event=>{event.preventDefault();appCloseGuide()});
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden){appRefreshWaiting();appCheckNearby();appNearbyLease()}
-});
-window.addEventListener('pagehide',()=>{
- if(nearbyRoom)appNearbyAPI({action:'close',lease:nearbyRoom.lease}).catch(()=>{});
+ syncTapRoom();
+ if(!document.hidden)appRefreshWaiting();
 });
 setInterval(appRefreshWaiting,12000);
-setInterval(()=>{appNearbyLease();appCheckNearby()},3500);
 const initialRenderPvp=pvpRender;
 pvpRender=function(){
  initialRenderPvp();
- appNearbyLease();
+ syncTapRoom();
 };
 
 const storedName=appRead(nicknameKey)?.trim().slice(0,20);

@@ -1,0 +1,3 @@
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android" android:description="@string/room" android:requireDeviceUnlock="true">
+  <aid-group android:category="other" android:description="@string/room"><aid-filter android:name="F05355444F4B5501"/></aid-group>
+</host-apdu-service>

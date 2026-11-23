@@ -317,7 +317,10 @@ body:has(#appNav[hidden]) #toast { bottom:calc(18px + env(safe-area-inset-bottom
 .gameover-card p { white-space:pre-line; color:var(--muted); }
 .gameover-card .gameover-icon { display:grid; place-items:center; width:52px; height:52px; margin:auto; border-radius:17px; background:#fff0f2; color:#ab4561; animation:none; }
 .gameover-icon svg { width:25px; height:25px; }
-@media(max-width:500px) {
- .gameover { align-items:end; padding:0; background:#18203966; }
- .gameover-card { width:100%; border-radius:24px 24px 0 0; padding:24px 20px calc(18px + env(safe-area-inset-bottom)); }
-}
+#gameOver { display:grid; place-items:center; padding:16px; background:#18203966; }
+#gameOver .gameover-card { width:min(100%,360px); max-height:calc(100% - 8px); overflow:auto; padding:24px 20px; border-radius:22px; animation:result-in .18s ease-out both; }
+@keyframes result-in { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+@media(prefers-reduced-motion:reduce) { #gameOver .gameover-card { animation:none; } }
+
+.rank-list { white-space:pre-line; line-height:1.65; }
+.pvp-hearts svg.empty { padding:0; border:0; border-radius:0; background:none; }
