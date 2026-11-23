@@ -25,3 +25,22 @@ jobs:
           name: sudoku-mate-unsigned
           path: android/build/outputs/apk/release/*-unsigned.apk
           if-no-files-found: error
+  launch:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sudoku-mate-unsigned
+          path: ${{ runner.temp }}/mate
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash android/qa/launch.sh
