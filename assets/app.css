@@ -22,24 +22,20 @@ button:disabled { opacity:.42; }
 
 .shell {
   width:min(100%,var(--app-width)); min-height:100svh; margin:auto;
-  padding:0 24px calc(104px + env(safe-area-inset-bottom)); background:var(--surface);
+  padding:calc(12px + env(safe-area-inset-top)) 24px calc(104px + env(safe-area-inset-bottom)); background:var(--surface);
 }
 body:has(#appNav[hidden]) .shell { padding-bottom:calc(32px + env(safe-area-inset-bottom)); }
-.app-topbar {
-  min-height:77px; padding-top:env(safe-area-inset-top); margin:0 -2px 11px;
-  display:flex; align-items:center; justify-content:flex-start; gap:6px;
-}
-.brand-button { padding:0; border:0; background:none; color:var(--ink); min-height:44px; gap:10px; }
-.brand-button img { flex:none; border-radius:12px; }
-.brand-title { font-size:19px; font-weight:780; letter-spacing:-.045em; }
+.app-topbar { display:flex; align-items:center; justify-content:space-between; margin:0 0 5px; }
 .icon-button {
   display:grid; place-items:center; width:44px; height:44px; flex:none;
   padding:0; border:0; border-radius:12px; background:transparent; color:var(--muted);
 }
-.help-button { margin-left:auto; border:1px solid var(--stroke); border-radius:50%; background:#fff; }
+.help-button { color:var(--muted); }
 .back-button { margin-left:-6px; }
-.back-button + .brand-button img { display:none; }
-.back-button[hidden] + .brand-button img { display:block; }
+.section-header:has(>.help-button) { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:6px; }
+.section-header:has(>button + .help-button) { grid-template-columns:minmax(0,1fr) auto auto; }
+.board-stage { position:relative; }
+.board-stage .help-button { position:absolute; top:1px; right:1px; }
 .app-glyph,.app-glyph svg { display:block; width:1em; height:1em; flex:none; }
 .app-glyph { font-size:22px; }
 
@@ -294,7 +290,6 @@ body:has(#appNav[hidden]) #toast { bottom:calc(18px + env(safe-area-inset-bottom
 }
 @media (max-width:390px) {
   .shell { padding-inline:16px; }
-  .app-topbar { min-height:67px; margin-bottom:9px; }
   .solo-card { padding:15px; }
 
 

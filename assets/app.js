@@ -52,6 +52,10 @@ function homeBoard(puzzle){
   return '<span class="'+style+'">'+(value==='0'?'':value)+'</span>';
  }).join('')+'</span>';
 }
+function guideButton(){
+ const label=appText('플레이 방법','How to play');
+ return `<button type="button" class="icon-button help-button" data-app-action="guide" aria-label="${label}" title="${label}">${appIcon('help')}</button>`;
+}
 function renderHome(){
  const activePuzzle=getPuzzle(state.activeId);
  const run=timeMode()?runOf(state.activeId):state.progress[state.activeId];
@@ -63,7 +67,7 @@ function renderHome(){
  $('#main').innerHTML=`<section class="home-screen">
   <section class="solo-card" aria-labelledby="soloTitle">
    <div class="solo-overview">
-    <div class="board-stage">${homeBoard(resume||getPuzzle('b001'))}</div>
+    <div class="board-stage">${homeBoard(resume||getPuzzle('b001'))}${guideButton()}</div>
     <div class="solo-intro">
      <h1 id="soloTitle">${appText('혼자 풀기','Solo play')}</h1>
      <p>${appText('쉬움부터 익스트림까지','From easy to extreme')}</p>
@@ -86,9 +90,7 @@ function renderHome(){
  appRefreshWaiting();
 }
 function appSetupNavigation(){
- $('#appBrand').textContent=appText('스도쿠 메이트','Sudoku Mate');
- $('#appHelp').ariaLabel=$('#appHelp').title=appText('플레이 방법','How to play');
- $('#appHelp').innerHTML=appIcon('help');
+ $('#detailBar').insertAdjacentHTML('beforeend',guideButton());
  $('#appBack').ariaLabel=appText('뒤로','Back');
  $('#appBack').innerHTML=appIcon('back');
  const nav=$('#appNav');
