@@ -2,6 +2,7 @@
 
 const appText=(ko,en)=>window.SUDOKU_LANG==='en'?en:ko;
 const appIcons={
+ plus:'<path d="M12 5v14M5 12h14"/>',
  home:'<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-6h6v6"/>',
  solo:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',
  friends:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/>',
@@ -42,11 +43,14 @@ function homeMode(key,title,detail){
  </button>`;
 }
 function homeBoard(puzzle){
- const rows=Array.from({length:6},(_,i)=>puzzle.givens.slice(i*9,i*9+6));
- const selected=rows.join('').indexOf('0');
- return '<div class="home-board" aria-hidden="true">'+rows.join('').split('').map((value,i)=>
-  '<span'+(i===selected?' class="board-cursor"':'')+'>'+(value==='0'?'':value)+'</span>'
- ).join('')+'</div>';
+ const cells=puzzle.givens;
+ const focus=cells.indexOf('0');
+ return '<span class="home-board" aria-hidden="true">'+Array.from(cells,(value,i)=>{
+  const sameRow=Math.floor(i/9)===Math.floor(focus/9);
+  const sameCol=i%9===focus%9;
+  const style=i===focus?'board-cursor':sameRow||sameCol?'board-peer':'';
+  return '<span class="'+style+'">'+(value==='0'?'':value)+'</span>';
+ }).join('')+'</span>';
 }
 function renderHome(){
  const activePuzzle=getPuzzle(state.activeId);
@@ -59,17 +63,17 @@ function renderHome(){
  $('#main').innerHTML=`<section class="home-screen">
   <section class="solo-card" aria-labelledby="soloTitle">
    <div class="solo-overview">
+    <div class="board-stage">${homeBoard(resume||getPuzzle('b001'))}</div>
     <div class="solo-intro">
-     <h1 id="soloTitle">${appText('혼자 풀기','Solo')}</h1>
-     <p>${appText('클래식 · 타임어택','Classic · Time Attack')}</p>
-     <div class="solo-stats" role="progressbar" aria-label="${stats}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}">
-      <span class="solo-track" aria-hidden="true"><span style="width:${completed/total*100}%"></span></span>
-      <small aria-hidden="true">${stats}</small>
-     </div>
+     <h1 id="soloTitle">${appText('혼자 풀기','Solo play')}</h1>
+     <p>${appText('쉬움부터 익스트림까지','From easy to extreme')}</p>
     </div>
-    ${homeBoard(resume||getPuzzle('b001'))}
+    <div class="solo-stats" role="progressbar" aria-label="${stats}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}">
+     <small aria-hidden="true">${stats}</small>
+     <span class="solo-track" aria-hidden="true"><span style="width:${completed/total*100}%"></span></span>
+    </div>
    </div>
-   <button type="button" class="solo-start" data-app-action="solo">${appText('문제 선택','Choose a puzzle')}${appIcon('next')}</button>
+   <button type="button" class="solo-start" data-app-action="solo">${appText('문제 고르기','Choose a puzzle')}${appIcon('next')}</button>
   </section>
   <div class="mode-list">
    ${homeMode('friends',appText('친구 대결','Friends'),'<small>'+appText('방 번호로 참가','Join by room code')+'</small>')}
@@ -98,9 +102,9 @@ function appSetupNavigation(){
 }
 
 const guideSlides=[
- {icon:'solo',title:appText('빈칸을 골라 숫자를 입력','Tap a cell and enter a number'),body:appText('가로줄, 세로줄, 3×3 구역마다 1부터 9까지 한 번씩 들어갑니다.','Each row, column and 3×3 box contains each number from 1 to 9 once.')},
- {icon:'note',title:appText('헷갈리면 메모','Make a note'),body:appText('메모를 켜고 후보 숫자를 적어 보세요. 지우개로 지울 수 있고, 막힐 땐 힌트를 쓸 수 있어요.','Turn on Notes to mark possible numbers. Use Erase to clear an entry or Hint when you’re stuck.')},
- {icon:'friends',title:appText('같은 퍼즐로 대결','Race on the same puzzle'),body:appText('친구와는 4자리 방 번호로 만나고, 월드 매칭에서는 상대를 자동으로 찾아요.','Use a 4-digit room code with friends, or let World Match find an opponent.')},
+ {icon:'solo',title:appText('빈칸에 숫자를 넣어 보세요','Tap a cell and enter a number'),body:appText('가로줄, 세로줄, 3×3 구역마다 1부터 9까지 한 번씩 들어갑니다.','Each row, column and 3×3 box contains each number from 1 to 9 once.')},
+ {icon:'note',title:appText('후보 숫자는 메모에 적어요','Make a note'),body:appText('메모를 켜고 후보 숫자를 적어 보세요. 지우개로 지울 수 있고, 막힐 땐 힌트를 쓸 수 있어요.','Turn on Notes to mark possible numbers. Use Erase to clear an entry or Hint when you’re stuck.')},
+ {icon:'friends',title:appText('같은 문제로 겨뤄 보세요','Race on the same puzzle'),body:appText('친구와는 4자리 방 번호로 만나고, 월드 매칭에서는 상대를 자동으로 찾아요.','Use a 4-digit room code with friends, or let World Match find an opponent.')},
 ];
 function appRenderGuide(){
  const step=guideSlides[guideStep];
@@ -178,11 +182,11 @@ function friendRoomWaiting(){
    '<input id="pvpShareURL" class="sr-only" tabindex="-1" aria-label="'+appText('초대 링크','Invite link')+'" value="'+escapeHtml(pvpShareURL())+'" readonly>':'')+
   (hasRoster?'<div class="room-roster"><h2>'+appText('참가자','Players')+' <span>'+players.filter(Boolean).length+' / '+capacity+'</span></h2><ul>'+
    Array.from({length:capacity},(_,i)=>'<li class="'+(players[i]?'joined':'')+'">'+appIcon('friends')+'<span>'+escapeHtml(players[i]||appText('입장 대기','Waiting to join'))+'</span></li>').join('')+
-   '</ul><p class="room-note">'+appText('정원이 모두 차면 자동으로 시작해요.','The match starts automatically when the room is full.')+'</p></div>':'')+
+   '</ul><p class="room-note">'+appText('모두 모이면 대결이 시작돼요.','The match starts automatically when the room is full.')+'</p></div>':'')+
   lobbyStatus()+lobbyBackButton(isHost?appText('방 닫기','Close room'):appText('입장 취소','Cancel join'))+'</div>';
 }
 function lobbyStatus(){
- const status=pvp.status||appText('연결을 준비 중이에요.','Getting connected…');
+ const status=pvp.status||appText('연결하는 중이에요.','Getting connected…');
  return '<p class="lobby-status" role="status">'+escapeHtml(status)+'</p>';
 }
 function lobbyBackButton(text){
@@ -209,8 +213,8 @@ function appUpdateLobby(){
  const count=appWaiting;
  document.querySelectorAll('[data-queue-count]').forEach(el=>{
   const text=count===undefined?appText('대기 인원 확인 중','Checking queue'):
-   count===null?appText('대기 인원 확인 불가','Queue count unavailable'):
-    appText('매칭 대기 '+count.toLocaleString('ko-KR')+'명',count.toLocaleString('en-US')+' waiting');
+   count===null?appText('대기 인원 미확인','Queue unavailable'):
+    appText(count.toLocaleString('ko-KR')+'명 대기 중',count.toLocaleString('en-US')+' waiting');
   if(el.textContent!==text)el.textContent=text;
   el.classList.toggle('is-live',Number.isInteger(count)&&count>0);
  });
