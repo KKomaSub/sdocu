@@ -313,42 +313,9 @@ body:has(#appNav[hidden]) #toast { bottom:calc(18px + env(safe-area-inset-bottom
 .custom-list .empty strong { color:var(--ink); margin-bottom:3px; }
 .attack-metric-label { display:block; color:var(--muted); font-size:12px; }
 .attack-hud .attack-timer { font-variant-numeric:tabular-nums; line-height:1.25; }
-.gameover-card h2 { color:var(--ink); }
-.gameover-card p { white-space:pre-line; color:var(--muted); }
-.gameover-card .gameover-icon { display:grid; place-items:center; width:52px; height:52px; margin:auto; border-radius:17px; background:#fff0f2; color:#ab4561; animation:none; }
-.gameover-icon svg { width:25px; height:25px; }
-#gameOver { display:grid; place-items:center; padding:16px; background:#18203966; }
-#gameOver .gameover-card { width:min(100%,360px); max-height:calc(100% - 8px); overflow:auto; padding:24px 20px; border-radius:22px; animation:result-in .18s ease-out both; }
-@keyframes result-in { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
-@media(prefers-reduced-motion:reduce) { #gameOver .gameover-card { animation:none; } }
-
-.rank-list { white-space:pre-line; line-height:1.65; }
+.rank-list,.pvp-outcome-detail { white-space:pre-line; line-height:1.65; }
 .pvp-hearts svg.empty { padding:0; border:0; border-radius:0; background:none; }
 
-/* Results share one quiet entrance, including elimination while spectating. */
-#pvpOutcome .pvp-outcome-card, #gameOver .gameover-card, .celebration-card {
-  max-height:100%; overflow-y:auto; overscroll-behavior:contain;
-  box-shadow:0 14px 44px #1b203830;
-  animation:mate-result-enter 270ms cubic-bezier(.16,.75,.24,1) both;
-}
-#pvpOutcome .pvp-outcome-card.lose .pvp-outcome-icon,
-#pvpOutcome .pvp-outcome-icon, #gameOver .gameover-icon, .celebration-icon {
-  display:inline-grid; place-items:center;
-  animation:mate-result-symbol 280ms cubic-bezier(.2,.75,.3,1) both;
-}
-#gameOver:not([hidden]), #pvpOutcome:not([hidden]), #celebration:not([hidden]) {
-  animation:mate-scrim 200ms ease-out both;
-}
-.pvp-outcome-detail { white-space:pre-line; }
-@keyframes mate-result-enter {
-  from { opacity:0; transform:translateY(12px) scale(.985); }
-  to { opacity:1; transform:none; }
-}
-@keyframes mate-result-symbol {
-  from { opacity:.5; transform:translateY(3px) scale(.94); }
-  to { opacity:1; transform:none; }
-}
-@keyframes mate-scrim { from { background-color:transparent; } }
 @media(prefers-reduced-motion:no-preference) {
   :is(.app-primary,.solo-start,.app-mode,.key,.nav-btn,.tool,.number-card,.primary,.secondary,.ghost) {
     transition:transform 130ms ease-out, background-color 140ms ease-out,color 140ms ease-out;
@@ -357,10 +324,114 @@ body:has(#appNav[hidden]) #toast { bottom:calc(18px + env(safe-area-inset-bottom
     transform:scale(.975);
   }
   .nav-btn .app-glyph { transition:background-color 180ms ease-out,color 180ms ease-out; }
-  #appDialog[open] { animation:mate-result-enter 190ms ease-out; }
+  #appDialog[open] { animation:result-copy-in 190ms ease-out; }
 }
 @media(prefers-reduced-motion:reduce) {
   #gameOver, #pvpOutcome, #celebration, #gameOver *, #pvpOutcome *, #celebration *, #appDialog {
     animation:none!important; transition:none!important;
   }
+}
+
+/* Full-width illustrated scene, followed by the result and its actions. */
+#gameOver, #pvpOutcome, #celebration {
+  display:grid; grid-template:minmax(0,1fr)/minmax(0,1fr); place-items:center; padding:16px; background:rgba(22,27,53,.52);
+}
+#gameOver .gameover-card, #pvpOutcome .pvp-outcome-card, #celebration .celebration-card {
+  --sky:#e4e7ff; --horizon:#b6c3eb; --orbit:#717fb5; --scene-ink:#364976;
+  position:relative; width:min(100%,360px); max-height:100%; padding:0 20px 20px;
+  overflow:auto; overscroll-behavior:contain; text-align:center; border:0; border-radius:26px;
+  background:white; box-shadow:0 24px 55px #12183140,0 3px 10px #12183118;
+}
+#gameOver .gameover-card {
+  --sky:#ffecdf; --horizon:#f4c3c4; --orbit:#b97986; --scene-ink:#913b57;
+}
+#pvpOutcome .pvp-outcome-card.win, #celebration .celebration-card {
+  --sky:#fff0c9; --horizon:#f5cd88; --orbit:#b38548; --scene-ink:#805825;
+}
+#pvpOutcome .pvp-outcome-card.tie {
+  --sky:#e0f3ef; --horizon:#a7d7d3; --orbit:#619996; --scene-ink:#356669;
+}
+.result-scene {
+  position:relative; isolation:isolate; overflow:hidden; display:grid; place-items:center;
+  height:clamp(94px,20vh,146px); margin:0 -20px 18px; color:var(--scene-ink);
+  background:radial-gradient(ellipse at 47% 19%,#ffffffb5,transparent 57%),
+    linear-gradient(137deg,var(--sky) 12%,var(--horizon));
+}
+.result-scene::before {
+  content:""; position:absolute; inset:0; z-index:-1; opacity:.21;
+  background-image:radial-gradient(var(--orbit) 1px,transparent 1px); background-size:11px 11px;
+  mask-image:linear-gradient(120deg,black,transparent 55%,black);
+}
+.result-orbit {
+  position:absolute; width:166px; height:92px; border:1px dashed var(--orbit);
+  border-radius:50%; opacity:.4; transform:rotate(-18deg);
+}
+.result-art { position:relative; width:91px; height:91px; overflow:visible; filter:drop-shadow(0 5px 3px #3b385521); }
+.result-art g { transform-box:fill-box; transform-origin:center; }
+.heart-left { transform:translate(-3px,0) rotate(-7deg); }
+.heart-right { transform:translate(3px,4px) rotate(9deg); }
+.result-spark { position:absolute; width:10px; height:10px; background:var(--scene-ink); clip-path:polygon(50% 0,62% 37%,100% 50%,62% 63%,50% 100%,38% 63%,0 50%,38% 37%); }
+.spark-one { left:26%; top:26%; }
+.spark-two { right:24%; bottom:27%; width:8px; height:8px; }
+.spark-three { right:32%; top:19%; width:5px; height:5px; }
+#pvpOutcome :is(.finish-art,.win-art,.tie-art) { display:none; }
+#pvpOutcome .lose .finish-art, #pvpOutcome .win .win-art, #pvpOutcome .tie .tie-art { display:inline; }
+#gameOver h2, #pvpOutcome h2, #celebration h2 {
+  margin:0 0 8px; color:var(--ink); font-size:clamp(22px,6vw,28px); letter-spacing:-.055em; line-height:1.25;
+}
+#gameOver p, #pvpOutcomeDetail, #victoryDesc { color:var(--muted); font-size:14px; margin:0 0 16px; line-height:1.6; overflow-wrap:anywhere; }
+.result-time { display:inline-flex; align-items:center; gap:8px; margin:0 auto 9px; padding:3px 10px; background:#f5f4f8; border-radius:8px; font-size:12px; color:var(--muted); }
+.result-time strong { font-size:14px; color:var(--ink); font-variant-numeric:tabular-nums; }
+.gameover-actions, .pvp-outcome-actions { gap:7px; }
+.gameover-actions button, .pvp-outcome-actions button, .celebration-card button { min-height:43px; border-radius:13px; }
+#reviveAdBtn { background:var(--accent); color:#fff; border:0; box-shadow:none; }
+.gameover-actions [data-action="time-retry"] { background:var(--soft); color:var(--accent-text); border:0; }
+.gameover-actions .ghost { border:0; background:transparent; color:var(--muted); }
+
+@keyframes result-arrive {
+  from { opacity:0; transform:translateY(26px) scale(.925); }
+  70% { transform:translateY(-3px) scale(1.008); }
+  to { opacity:1; transform:none; }
+}
+@keyframes result-copy-in { from { opacity:0; transform:translateY(8px); } }
+@keyframes result-orbit-in { from { opacity:0; transform:rotate(-48deg) scale(.7); } }
+@keyframes result-spark-in { 0% { opacity:0; transform:scale(.2) rotate(-45deg); } 65% { transform:scale(1.4); } }
+@keyframes heart-crack-left { 0%,30% { transform:none; } 65% { transform:translate(-7px,-3px) rotate(-13deg); } }
+@keyframes heart-crack-right { 0%,30% { transform:none; } 65% { transform:translate(8px,7px) rotate(15deg); } }
+@keyframes finish-plant { from { opacity:0; transform:translateY(-17px) rotate(-15deg); } 65% { transform:translateY(2px) rotate(3deg); } }
+@keyframes finish-unfurl { from { transform:scaleX(.12) skewY(-12deg); } 65% { transform:scaleX(1.08) skewY(3deg); } }
+@keyframes medal-land { from { opacity:0; transform:translateY(-17px) rotate(-22deg) scale(.72); } 70% { transform:rotate(5deg) scale(1.05); } }
+@keyframes rings-meet { from { opacity:0; transform:translateX(var(--from)) rotate(-12deg); } }
+@media(prefers-reduced-motion:no-preference) {
+  #gameOver .gameover-card, #pvpOutcome .pvp-outcome-card, #celebration .celebration-card { animation:result-arrive .46s cubic-bezier(.2,.72,.28,1) both; }
+  .result-orbit { animation:result-orbit-in .7s ease-out both; }
+  .result-spark { animation:result-spark-in .42s .3s ease-out both; }
+  .spark-two { animation-delay:.41s; }
+  .spark-three { animation-delay:.48s; }
+  .heart-left { animation:heart-crack-left .76s .06s ease-out both; }
+  .heart-right { animation:heart-crack-right .76s .06s ease-out both; }
+  .finish-flag { animation:finish-plant .48s .12s ease-out both; }
+  .result-art .flag-cloth { transform-origin:left center; animation:finish-unfurl .58s .22s ease-out both; }
+  .medal-face { animation:medal-land .65s .1s ease-out both; }
+  .tie-first,.tie-second { animation:rings-meet .52s .1s ease-out both; }
+  .tie-first { --from:-14px; } .tie-second { --from:14px; }
+  .result-scene ~ h2, .result-time, #gameOverDesc, #pvpOutcomeDetail, #victoryDesc { animation:result-copy-in .3s .12s ease-out both; }
+  .gameover-actions,.pvp-outcome-actions,.celebration-card button { animation:result-copy-in .3s .18s ease-out both; }
+}
+
+body[data-app-view="catalog"] .filters {
+  padding:4px; margin:13px 0 10px; gap:2px; border-radius:15px; background:#e8eaf3;
+}
+body[data-app-view="catalog"] .filter {
+  flex:1 0 auto; padding:5px 9px; min-height:37px; border:0; border-radius:11px; background:transparent; color:var(--muted);
+}
+body[data-app-view="catalog"] .filter.active { background:#fff; color:var(--accent-text); box-shadow:0 1px 4px #272b5323; }
+.catalog-completed { display:inline-flex; align-items:center; gap:4px; color:var(--accent-text); font-variant-numeric:tabular-nums; }
+.catalog-completed .app-glyph { font-size:15px; }
+.main-nav.app-nav { box-shadow:0 -4px 20px #292d5808; }
+.app-nav .app-glyph { border-radius:16px; }
+.app-nav .nav-btn.active .app-glyph { background:#e5e7ff; }
+@media(prefers-reduced-motion:no-preference) {
+  .app-nav .active .app-glyph svg { animation:tab-select .27s ease-out; }
+  @keyframes tab-select { from { transform:translateY(2px) scale(.88); } 65% { transform:translateY(-1px) scale(1.06); } }
 }

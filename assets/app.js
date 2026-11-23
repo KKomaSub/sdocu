@@ -53,14 +53,20 @@ function guideButton(){
  const label=appText('플레이 방법','How to play');
  return `<button type="button" class="icon-button help-button" data-app-action="guide" aria-label="${label}" title="${label}">${appIcon('help')}</button>`;
 }
+function completedBuiltinCount(){
+ return new Set(state.history.filter(item=>getPuzzle(item.id)?.builtin).map(item=>item.id)).size;
+}
+function completedCaption(count){
+ return appText(`${count}문제 완료`,`${count} ${count===1?'puzzle':'puzzles'} completed`);
+}
 function renderHome(){
  const activePuzzle=getPuzzle(state.activeId);
  const run=timeMode()?runOf(state.activeId):state.progress[state.activeId];
  const started=run&&(timeMode()?run.status==='running':!run.done&&(run.answers!==EMPTY||Object.keys(run.notes||{}).length));
  const resume=activePuzzle&&started?activePuzzle:null;
  const total=BUILTINS.length;
- const completed=new Set(state.history.filter(item=>getPuzzle(item.id)?.builtin).map(item=>item.id)).size;
- const stats=appText(`${completed} / ${total} 완료`,`${completed} / ${total} completed`);
+ const completed=completedBuiltinCount();
+ const stats=completedCaption(completed);
  $('#main').innerHTML=`<section class="home-screen">
   <section class="solo-card" aria-labelledby="soloTitle">
    <div class="solo-overview">

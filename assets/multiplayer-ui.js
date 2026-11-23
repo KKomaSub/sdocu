@@ -64,7 +64,6 @@ pvpShowOutcome=function(){
  const result=m.finished?pvpGameOutcome():'lose';
  const rank=multiRanking(m).find(row=>row.id===multiGroup()).rank;
  $('#pvpOutcomeCard').className='pvp-outcome-card '+result;
- $('#pvpOutcomeIcon').textContent=result==='win'?'🏆':result==='tie'?'🤝':'💔';
  $('#pvpOutcomeTitle').textContent=(m.format==='team4'?multiT('우리 팀 ','Your team '):'')+rankLabel(rank);
  $('#pvpOutcomeDetail').textContent=m.finished?rankingLines(m):multiT('하트를 모두 썼어요. 남은 경기를 관전할 수 있어요.','You’re out of hearts. You can watch the rest of the match.');
  $('#pvpOutcome [data-action="pvp-solo"]').hidden=!m.finished;
