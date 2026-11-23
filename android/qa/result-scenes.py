@@ -50,6 +50,11 @@ with tempfile.TemporaryDirectory() as temp:
                 archive.extract(name, root)
     assets = root / 'assets'
     index = (assets / 'index.html').read_text()
+    # Desktop Chrome has no native Android prompt handler. Keep network and
+    # onboarding independent from the result scenes exercised here.
+    stub = "<script>window.prompt=()=>'';window.fetch=()=>Promise.reject(Error('offline'));localStorage.setItem('sudoku-mate-guide-v1','1')</script>"
+    index = index.replace('<script>window.MATE_ANDROID=true</script>',
+                          '<script>window.MATE_ANDROID=true</script>'+stub)
     for reduced in (False, True):
         script = checks.replace('REDUCED', str(reduced).lower())
         script = "try{" + script + "document.body.dataset.qa='pass'}catch(e){document.body.dataset.qa=e.message}"
@@ -57,7 +62,8 @@ with tempfile.TemporaryDirectory() as temp:
         test.write_text(index.replace('</body>', '<script>'+script+'</script></body>'))
         flags = ['--force-prefers-reduced-motion'] if reduced else []
         out = subprocess.check_output(['google-chrome', '--headless', '--no-sandbox',
-            '--disable-gpu', '--window-size=390,600', '--dump-dom', *flags,
+            '--no-first-run', '--disable-background-networking',
+            f'--user-data-dir={root / str(reduced)}', '--disable-gpu', '--window-size=390,600', '--dump-dom', *flags,
             test.as_uri()], text=True, timeout=45)
         status = re.search(r'<body[^>]* data-qa="([^"]*)"', out)
         assert status and status[1] == 'pass', status[1] if status else 'Test did not run'
