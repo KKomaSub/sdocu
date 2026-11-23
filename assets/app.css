@@ -324,3 +324,43 @@ body:has(#appNav[hidden]) #toast { bottom:calc(18px + env(safe-area-inset-bottom
 
 .rank-list { white-space:pre-line; line-height:1.65; }
 .pvp-hearts svg.empty { padding:0; border:0; border-radius:0; background:none; }
+
+/* Results share one quiet entrance, including elimination while spectating. */
+#pvpOutcome .pvp-outcome-card, #gameOver .gameover-card, .celebration-card {
+  max-height:100%; overflow-y:auto; overscroll-behavior:contain;
+  box-shadow:0 14px 44px #1b203830;
+  animation:mate-result-enter 270ms cubic-bezier(.16,.75,.24,1) both;
+}
+#pvpOutcome .pvp-outcome-card.lose .pvp-outcome-icon,
+#pvpOutcome .pvp-outcome-icon, #gameOver .gameover-icon, .celebration-icon {
+  display:inline-grid; place-items:center;
+  animation:mate-result-symbol 280ms cubic-bezier(.2,.75,.3,1) both;
+}
+#gameOver:not([hidden]), #pvpOutcome:not([hidden]), #celebration:not([hidden]) {
+  animation:mate-scrim 200ms ease-out both;
+}
+.pvp-outcome-detail { white-space:pre-line; }
+@keyframes mate-result-enter {
+  from { opacity:0; transform:translateY(12px) scale(.985); }
+  to { opacity:1; transform:none; }
+}
+@keyframes mate-result-symbol {
+  from { opacity:.5; transform:translateY(3px) scale(.94); }
+  to { opacity:1; transform:none; }
+}
+@keyframes mate-scrim { from { background-color:transparent; } }
+@media(prefers-reduced-motion:no-preference) {
+  :is(.app-primary,.solo-start,.app-mode,.key,.nav-btn,.tool,.number-card,.primary,.secondary,.ghost) {
+    transition:transform 130ms ease-out, background-color 140ms ease-out,color 140ms ease-out;
+  }
+  :is(.app-primary,.solo-start,.app-mode,.key,.nav-btn,.tool,.number-card,.primary,.secondary,.ghost):enabled:active {
+    transform:scale(.975);
+  }
+  .nav-btn .app-glyph { transition:background-color 180ms ease-out,color 180ms ease-out; }
+  #appDialog[open] { animation:mate-result-enter 190ms ease-out; }
+}
+@media(prefers-reduced-motion:reduce) {
+  #gameOver, #pvpOutcome, #celebration, #gameOver *, #pvpOutcome *, #celebration *, #appDialog {
+    animation:none!important; transition:none!important;
+  }
+}

@@ -10,6 +10,14 @@ adb shell am start -W -n "$pkg/.GameActivity"
 for _ in $(seq 1 20); do
     adb shell uiautomator dump /sdcard/mate-ui.xml >/dev/null 2>&1 || true
     if adb shell cat /sdcard/mate-ui.xml > "$RUNNER_TEMP/mate-ui.xml" 2>/dev/null && grep -Eq 'Tap a cell|Skip|Choose a puzzle|건너뛰기|문제 고르기' "$RUNNER_TEMP/mate-ui.xml"; then
+        for mode in threebutton gestural; do
+            overlay=com.android.internal.systemui.navbar.$mode
+            adb shell cmd overlay enable-exclusive --category "$overlay"
+            sleep 2
+            adb shell uiautomator dump /sdcard/mate-ui.xml
+            adb shell cat /sdcard/mate-ui.xml > "$RUNNER_TEMP/mate-ui.xml"
+            python3 android/qa/check-insets.py "$RUNNER_TEMP/mate-ui.xml" "$mode"
+        done
         adb shell input keyevent KEYCODE_HOME
         adb shell am start -W -n "$pkg/.GameActivity"
         adb shell pidof "$pkg"

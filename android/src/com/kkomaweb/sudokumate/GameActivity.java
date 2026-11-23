@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.WindowInsets;
 import android.webkit.*;
+import android.widget.FrameLayout;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
@@ -29,16 +30,22 @@ public final class GameActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         web = new WebView(this);
-        web.setBackgroundColor(Color.rgb(244,245,250));
-        setContentView(web);
+        int surface = Color.rgb(244,245,250);
+        FrameLayout viewport = new FrameLayout(this);
+        viewport.setBackgroundColor(surface);
+        web.setBackgroundColor(surface);
+        viewport.addView(web, new FrameLayout.LayoutParams(-1,-1));
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        if (android.os.Build.VERSION.SDK_INT >= 35) {
-            web.setOnApplyWindowInsetsListener((view,insets)-> {
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+            viewport.setOnApplyWindowInsetsListener((frame,insets)-> {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
-                view.setPadding(bars.left,bars.top,bars.right,bars.bottom);
+                frame.setPadding(bars.left,bars.top,bars.right,bars.bottom);
                 return WindowInsets.CONSUMED;
             });
         }
+        setContentView(viewport);
+        viewport.requestApplyInsets();
         nfc = NfcAdapter.getDefaultAdapter(this);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);

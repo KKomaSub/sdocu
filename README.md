@@ -17,6 +17,6 @@ Cloudflare Pages용 스도쿠 게임입니다. 첫 방문에는 짧은 안내가
 
 ## Android
 
-Android 8 이상에서 실행합니다. 퍼즐과 PeerJS는 APK에 포함됩니다. 월드 매칭 서버는 https://스도쿠.kro.kr 입니다. Google Mobile Ads와 UMP를 사용하며 디버그 빌드에는 테스트 광고 단위가 적용됩니다. 하트는 타임어택 한 판에 두 번, 추가 힌트는 일반 또는 타임어택 풀이당 한 번 받을 수 있습니다.
+Android 8 이상에서 실행합니다. 퍼즐과 PeerJS는 APK에 포함됩니다. 월드 매칭 서버는 https://스도쿠.kro.kr 입니다. Google Mobile Ads와 UMP를 사용하며 디버그 빌드에는 테스트 광고 단위가 적용됩니다. 하트를 모두 쓰거나 힌트가 떨어지면 광고를 끝까지 볼 때마다 해당 보상을 하나씩 받을 수 있습니다.
 
 JDK 17, Gradle 8.13, Android SDK 36 환경에서 `gradle -p android assembleRelease`로 빌드하고 APK를 배포용 키로 서명하세요.
