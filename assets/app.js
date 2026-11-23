@@ -34,25 +34,50 @@ let nearbyRefreshAt=0;
 let guideStep=0;
 let guideReturn=null;
 let pendingInvite=null;
-const appModes=[
- {key:'solo',title:appText('혼자 풀기','Solo'),description:appText('퍼즐 300개 · 타임어택','300 puzzles · Time Attack')},
- {key:'friends',title:appText('친구 대결','Friends'),description:appText('방 번호로 함께 플레이','Join with a room code')},
- {key:'world',title:appText('월드 매칭','World Match'),description:''},
-];
-function homeMode({key,title,description}){
- const detail=key==='world'?'<small data-queue-count></small>':'<small>'+description+'</small>';
- return '<button type="button" class="app-mode mode-'+key+'" data-app-action="'+key+'">'+
-  '<span class="mode-symbol">'+appIcon(key)+'</span><span class="mode-copy"><strong>'+title+'</strong>'+detail+'</span>'+
-  '<span class="mode-chevron">'+appIcon('next')+'</span></button>';
+function homeMode(key,title,detail){
+ return `<button type="button" class="app-mode mode-${key}" data-app-action="${key}">
+  <span class="mode-symbol">${appIcon(key)}</span>
+  <span class="mode-chevron">${appIcon('next')}</span>
+  <span class="mode-copy"><strong>${title}</strong>${detail}</span>
+ </button>`;
+}
+function homeBoard(puzzle){
+ const rows=Array.from({length:6},(_,i)=>puzzle.givens.slice(i*9,i*9+6));
+ const selected=rows.join('').indexOf('0');
+ return '<div class="home-board" aria-hidden="true">'+rows.join('').split('').map((value,i)=>
+  '<span'+(i===selected?' class="board-cursor"':'')+'>'+(value==='0'?'':value)+'</span>'
+ ).join('')+'</div>';
 }
 function renderHome(){
- const puzzle=getPuzzle(state.activeId);
+ const activePuzzle=getPuzzle(state.activeId);
  const run=timeMode()?runOf(state.activeId):state.progress[state.activeId];
- const resume=puzzle&&run&&(timeMode()?run.status==='running':!run.done&&(run.answers!==EMPTY||Object.keys(run.notes||{}).length));
- $('#main').innerHTML='<section class="home-screen"><h1>'+appText('플레이','Play')+'</h1>'+
-  homeMode(appModes[0])+'<div class="mode-list">'+appModes.slice(1).map(homeMode).join('')+'</div>'+
-  (resume?'<button type="button" class="home-resume" data-action="return-play">'+appIcon('play')+
-   '<span><strong>'+appText('이어 풀기','Continue')+'</strong><small>'+escapeHtml(puzzle.title)+'</small></span>'+appIcon('next')+'</button>':'')+'</section>';
+ const started=run&&(timeMode()?run.status==='running':!run.done&&(run.answers!==EMPTY||Object.keys(run.notes||{}).length));
+ const resume=activePuzzle&&started?activePuzzle:null;
+ const total=BUILTINS.length;
+ const completed=new Set(state.history.filter(item=>getPuzzle(item.id)?.builtin).map(item=>item.id)).size;
+ const stats=appText(`${completed} / ${total} 완료`,`${completed} / ${total} completed`);
+ $('#main').innerHTML=`<section class="home-screen">
+  <section class="solo-card" aria-labelledby="soloTitle">
+   <div class="solo-overview">
+    <div class="solo-intro">
+     <h1 id="soloTitle">${appText('혼자 풀기','Solo')}</h1>
+     <p>${appText('클래식 · 타임어택','Classic · Time Attack')}</p>
+     <div class="solo-stats" role="progressbar" aria-label="${stats}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${completed}">
+      <span class="solo-track" aria-hidden="true"><span style="width:${completed/total*100}%"></span></span>
+      <small aria-hidden="true">${stats}</small>
+     </div>
+    </div>
+    ${homeBoard(resume||getPuzzle('b001'))}
+   </div>
+   <button type="button" class="solo-start" data-app-action="solo">${appText('문제 선택','Choose a puzzle')}${appIcon('next')}</button>
+  </section>
+  <div class="mode-list">
+   ${homeMode('friends',appText('친구 대결','Friends'),'<small>'+appText('방 번호로 참가','Join by room code')+'</small>')}
+   ${homeMode('world',appText('월드 매칭','World Match'),'<small data-queue-count></small>')}
+  </div>
+  ${resume?`<button type="button" class="home-resume" data-action="return-play"><span class="resume-icon">${appIcon('play')}</span>
+   <span><strong>${appText('이어 풀기','Continue')}</strong><small>${escapeHtml(resume.title)}</small></span>${appIcon('next')}</button>`:''}
+ </section>`;
  appUpdateLobby();
  appRefreshWaiting();
 }
@@ -80,9 +105,8 @@ const guideSlides=[
 function appRenderGuide(){
  const step=guideSlides[guideStep];
  const next=guideStep===guideSlides.length-1?appText('시작하기','Start playing'):appText('다음','Next');
- $('#appGuide').innerHTML='<div class="guide-head"><div class="guide-orb">'+appIcon(step.icon)+'</div><button type="button" class="guide-skip" data-app-action="guide-close">'+
+ $('#appGuide').innerHTML='<div class="guide-handle" aria-hidden="true"></div><div class="guide-head"><div class="guide-orb">'+appIcon(step.icon)+'</div><button type="button" class="guide-skip" data-app-action="guide-close">'+
   appText('건너뛰기','Skip')+'</button></div><h2 id="appGuideTitle">'+step.title+'</h2><p>'+step.body+'</p>'+
-  (guideStep===0?'<div class="guide-example" aria-hidden="true"><span>4</span><span>2</span><span>9</span><span>6</span><span>1</span><span>8</span><span>5</span><span>3</span><span class="example-selected">7</span></div>':'')+
   '<div class="guide-progress" aria-label="'+(guideStep+1)+' / '+guideSlides.length+'">'+guideSlides.map((_,i)=>'<i class="'+(i===guideStep?'current':'')+'"></i>').join('')+
   '</div><button type="button" class="primary app-primary guide-next" data-app-action="guide-next">'+next+'</button>';
 }
