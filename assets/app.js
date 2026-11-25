@@ -61,9 +61,11 @@ function completedCaption(count){
 }
 function renderHome(){
  const activePuzzle=getPuzzle(state.activeId);
- const run=timeMode()?runOf(state.activeId):state.progress[state.activeId];
- const started=run&&(timeMode()?run.status==='running':!run.done&&(run.answers!==EMPTY||Object.keys(run.notes||{}).length));
- const resume=activePuzzle&&started?activePuzzle:null;
+ const attack=runOf(state.activeId);
+ const practice=state.progress[state.activeId];
+ const practiceStarted=practice&&!practice.done&&(practice.answers!==EMPTY||Object.keys(practice.notes).length);
+ const resumeMode=attack?.status==='running'?'time':practiceStarted?'normal':null;
+ const resume=resumeMode?activePuzzle:null;
  const total=BUILTINS.length;
  const completed=completedBuiltinCount();
  const stats=completedCaption(completed);
@@ -86,7 +88,7 @@ function renderHome(){
    ${homeMode('friends',appText('친구 대결','Friends'),'<small>'+appText('방 번호로 참가','Join by room code')+'</small>')}
    ${homeMode('world',appText('월드 매칭','World Match'),'<small data-queue-count></small>')}
   </div>
-  ${resume?`<button type="button" class="home-resume" data-action="return-play"><span class="resume-icon">${appIcon('play')}</span>
+  ${resume?`<button type="button" class="home-resume" data-action="return-play" data-mode="${resumeMode}"><span class="resume-icon">${appIcon('play')}</span>
    <span><strong>${appText('이어 풀기','Continue')}</strong><small>${escapeHtml(resume.title)}</small></span>${appIcon('next')}</button>`:''}
  </section>`;
  appUpdateLobby();

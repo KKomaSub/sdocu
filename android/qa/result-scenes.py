@@ -24,12 +24,20 @@ function scene(id,symbol,animation){
 }
 check(timeMode(),'fresh install starts in Time Attack');
 check(normalizeState({}).playMode==='time','default for saves without a mode');
-check(normalizeState({playMode:'normal'}).playMode==='normal','saved practice selection');
+const previous=normalizeState({playMode:'normal',progress:{b001:{answers:EMPTY,notes:{3:64}}}});
+check(previous.playMode==='time','upgrade defaults to Time Attack');
+check(previous.progress.b001.notes[3]===64,'upgrade preserves practice notes');
 openGame('b001');
 check(document.querySelector('.mode-btn.active').textContent==='타임어택','first puzzle opens in Time Attack');
 document.querySelector('[data-action="mode-normal"]').click();
 check(document.querySelector('.mode-btn.active').textContent==='연습 모드','practice tab label and selection');
-check(loadState().playMode==='normal','practice mode persisted');
+check(loadState().playMode==='time','relaunch defaults to Time Attack');
+openGame('b002');
+check(document.querySelector('.mode-btn.active').textContent==='타임어택','new puzzle defaults to Time Attack');
+state.progress.b002={answers:EMPTY,notes:{3:64}};
+state.view='home';renderHome();
+document.querySelector('.home-resume').click();
+check(!timeMode() && state.progress.b002.notes[3]===64,'continue saved practice from home');
 startTimeAttack();
 const run=runOf(state.activeId);run.status='lost';run.lives=0;run.finalMs=45000;
 showGameOver();
