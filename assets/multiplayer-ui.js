@@ -76,7 +76,7 @@ pvpResultHtml=function(){
  if(!multi.active||!pvp.match?.format)return multiOldResult();
  const m=pvp.match;if(!m.finished)return '';
  const g=m.groups[multiGroup()],result=pvpGameOutcome(),word=result==='win'?multiT('승리','Victory'):result==='lose'?multiT('패배','Defeat'):multiT('무승부','Draw');
- return '<div class="pvp-finished"><strong>'+word+'</strong><div class="rank-list">'+escapeHtml(rankingLines(m))+'</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">'+multiT('일반 모드에서 이어 풀기','Continue in Normal mode')+'</button><button class="secondary" data-action="pvp-new">'+multiT('새 대결','New match')+'</button></div>';
+ return '<div class="pvp-finished"><strong>'+word+'</strong><div class="rank-list">'+escapeHtml(rankingLines(m))+'</div></div><div class="pvp-continue"><button class="primary" data-action="pvp-solo">'+multiT('연습 모드에서 이어 풀기','Continue in Practice mode')+'</button><button class="secondary" data-action="pvp-new">'+multiT('새 대결','New match')+'</button></div>';
 };
 const multiOldRenderMatch=pvpRenderMatch;
 pvpRenderMatch=function(){
@@ -131,7 +131,7 @@ pvpSoloContinue=function(id=null){
  if(!multi.active||!pvp.match?.format)return multiOldSolo(id);
  const solo=id||(pvp.match?.finished?pvpArchiveMatch():null);
  if(!solo||!getPuzzle(solo)){notify(multiT('이어 풀 문제를 찾을 수 없습니다.','Cannot find the duel puzzle.'));return}
- pvpHideOutcome();state.playMode='normal';openGame(solo);
+ pvpHideOutcome();openGame(solo,'normal');
 };
 const multiStyle=document.createElement('style');
 multiStyle.textContent='.multi-format{margin:0 0 14px}.multi-format small{display:block;margin:6px 0 0;color:#8490a4}.multi-lobby-roster{margin-top:14px;padding:15px;border:1px solid #d9e5f5;border-radius:14px;background:#f5f8fe}.multi-roster-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin:10px 0}.multi-roster-grid span{padding:10px;background:#fff;border:1px solid #dde6f6;border-radius:9px;font-size:12px;font-weight:750}.multi-lobby-roster p{font-size:12px;color:#6881a4}.multi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;margin:14px 0}.multi-card{min-width:0;background:#f7faff;border:1px solid #dce5f5;padding:11px;border-radius:12px}.multi-card.mine{box-shadow:inset 0 0 0 2px #8baafb;background:#f0f5ff}.multi-card.blue{border-left:4px solid #427eef}.multi-card.red{border-left:4px solid #f07272}.multi-card-top{display:flex;justify-content:space-between;gap:6px;font-size:12px}.multi-card-top strong{overflow-wrap:anywhere}.multi-card-top b{white-space:nowrap;color:#4b6eb7}.multi-card small{display:block;font-size:11px;color:#798ba5;margin-top:6px;overflow-wrap:anywhere}.multi-card-hearts{font-size:16px;margin:9px 0 4px}.multi-card-progress{font-size:11px;color:#7184a4}.multi-team-info{font-size:12px;color:#4973b5;margin:6px 0 13px}@media(max-width:460px){.multi-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.multi-card{padding:8px}.multi-card-top{display:block}.multi-card-top b{display:block;margin-top:4px}}';

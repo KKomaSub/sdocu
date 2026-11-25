@@ -22,7 +22,15 @@ function scene(id,symbol,animation){
  check(rect.height>0 && rect.top>=0 && rect.bottom<=innerHeight+1,'card bounds '+id);
  check(getComputedStyle(art).animationName===(reduced?'none':animation),'symbol motion '+symbol);
 }
-state.view='play';startTimeAttack();
+check(timeMode(),'fresh install starts in Time Attack');
+check(normalizeState({}).playMode==='time','default for saves without a mode');
+check(normalizeState({playMode:'normal'}).playMode==='normal','saved practice selection');
+openGame('b001');
+check(document.querySelector('.mode-btn.active').textContent==='타임어택','first puzzle opens in Time Attack');
+document.querySelector('[data-action="mode-normal"]').click();
+check(document.querySelector('.mode-btn.active').textContent==='연습 모드','practice tab label and selection');
+check(loadState().playMode==='normal','practice mode persisted');
+startTimeAttack();
 const run=runOf(state.activeId);run.status='lost';run.lives=0;run.finalMs=45000;
 showGameOver();
 scene('.gameover-card','.heart-left','heart-crack-left');
