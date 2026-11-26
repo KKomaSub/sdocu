@@ -141,6 +141,9 @@ body:has(#appNav[hidden]) .shell { padding-bottom:calc(32px + env(safe-area-inse
 .number-card small { color:var(--muted); font-size:11px; }
 .number-card.in-progress { background:#fff0dc; border-color:#eca34a; }
 .number-card.in-progress b,.number-card.in-progress small { color:#884000; }
+.number-card.failed,.custom-card.failed { background:#ffeaec; border-color:#e3919b; }
+.number-card.failed b,.number-card.failed small,.custom-card .failed-label { color:#932639; }
+.number-card.failed.selected { box-shadow:inset 0 0 0 2px #c94456; }
 .number-card.in-progress.selected { box-shadow:inset 0 0 0 2px #cd7315; }
 .number-card.selected { box-shadow:inset 0 0 0 1px #656fe0; }
 .custom-card,.history-item,.empty { background:var(--white); border-color:var(--stroke); }

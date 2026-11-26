@@ -343,6 +343,7 @@ function solutionFor(puz,p,preferEntered=false){if(puz.solution)return {solution
 const MAX_HINTS=2;
 const timeMode=()=>state.playMode==='time';
 const runOf=id=>state.timeAttackRuns[id]||null;
+const failedAttack=id=>{const run=runOf(id);return run?.status==='lost'&&run.lives===0};
 const attackSolution=(puz,run)=>puz.solution||run?.solution||null;
 function formatElapsed(ms){ms=Math.max(0,Math.floor(ms));let m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),c=Math.floor(ms%1000/10);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`}
 const clockAnchors=new Map();
@@ -376,12 +377,31 @@ function startTimeAttack(){const puz=getPuzzle(state.activeId);if(!puz)return;le
  if(!sol){const counted=countSolutions(puz.givens,2,95000);if(counted.limited){notify('해답 검사가 복잡합니다. 고정 숫자를 더 추가하세요.');return}if(counted.found!==1){notify(counted.found===0?'정답이 없는 문제입니다.':'타임어택은 정답이 하나뿐인 내 문제에서만 시작할 수 있습니다.');return}const found=solutionFor(puz,{answers:EMPTY,notes:{}},false);sol=found.solution;if(!sol){notify('정답을 계산할 수 없습니다.');return}}
  state.timeAttackRuns[puz.id]={answers:EMPTY,notes:{},hintsUsed:0,bonusHints:0,lives:3,status:'running',activeMs:0,startedAt:Date.now(),finishedAt:0,finalMs:0,solution:sol};state.playMode='time';checkpointClocks();hintPreview=null;state.noteMode=false;state.selected=Math.max(0,puz.givens.indexOf('0'));persist();renderPlay();}
 function retryTimeAttack(){const puz=getPuzzle(state.activeId);if(!puz)return;endGameOver();startTimeAttack()}
-function switchPlayMode(mode){if(mode===state.playMode)return;
- state.playMode=mode;
- checkpointClocks();
- hintPreview=null;
- persist();
- renderPlay();
+function switchPlayMode(mode){
+ if(mode===state.playMode)return;
+ const id=state.activeId,run=runOf(id);
+ function applyMode(){
+  state.playMode=mode;
+  checkpointClocks();
+  hintPreview=null;
+  persist();
+  renderPlay();
+ }
+ if(timeMode()&&mode==='normal'&&run?.status==='running'){
+  openDialog({
+   title:appText('타임어택을 종료할까요?','End this time attack?'),
+   message:appText('연습 모드로 전환하면 이번 도전에서 입력한 숫자와 메모, 풀이 시간이 모두 지워져요.','Switching to Practice mode will discard the entries, notes and time for this attempt.'),
+   confirmLabel:appText('종료하고 전환','End and switch'),danger:true,
+   onConfirm:()=>{
+    if(state.view!=='play'||state.activeId!==id||runOf(id)!==run||run.status!=='running')return;
+    clockAnchors.delete(run);
+    delete state.timeAttackRuns[id];
+    applyMode();
+   }
+  });
+  return;
+ }
+ applyMode();
 }
 
 // In-house promotional video (no ad network approval or monetization).
@@ -554,14 +574,18 @@ function catalogCardsHtml(){let filtered=LEVELS.filter(l=>state.filter==='all'||
  const solved=state.history.some(x=>x.id===id);
  const practicing=practice&&!practice.done&&(practice.answers!==EMPTY||Object.keys(practice.notes||{}).length>0);
  const started=runOf(id)?.status==='running'||practicing;
- const style=started?'in-progress':best?'time-cleared':solved?'solved':'';
- const label=started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':'시작 전';
- return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
+ const failed=failedAttack(id);
+ const style=failed?'failed':started?'in-progress':best?'time-cleared':solved?'solved':'';
+ const label=failed?appText('실패','Failed'):started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':'시작 전';
+ return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best&&!failed?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
 }).join('')}
 function renderCatalog(){const solved=completedBuiltinCount();$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h1 class="panel-title">문제 선택</h1><p class="panel-subtitle catalog-completed">${appIcon('check')}${completedCaption(solved)}</p></div><button class="secondary compact" data-action="return-play">이어 풀기</button>${guideButton()}</div><div class="filters">${[{key:'all',name:'전체'},...LEVELS.map(l=>({key:l.key,name:l.name}))].map(l=>`<button class="filter ${state.filter===l.key?'active':''}" data-action="filter" data-filter="${l.key}">${l.name}</button>`).join('')}</div><label class="searchbar">${iconSearch}<input type="search" id="catalogSearch" inputmode="numeric" placeholder="문제 번호 검색 (예: 125)" value="${escapeHtml(catalogQuery)}" autocomplete="off" aria-label="문제 번호 검색"></label><div id="catalogCards" class="card-grid">${catalogCardsHtml()}</div></section>`}
 function renderCatalogCards(){let elem=$('#catalogCards');if(elem)elem.innerHTML=catalogCardsHtml()}
-function customProgressLabel(p){let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return '시작 전'}
-function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header custom-header"><h1 class="panel-title">내 스도쿠</h1><button class="primary compact create-puzzle" type="button" data-action="new-custom">${appIcon('plus')}<span>${appText('만들기','Create')}</span></button>${guideButton()}</div>${state.editor?`<div class="notice" style="margin:0 0 15px">만들던 문제가 있어요. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):`<div class="empty">${appIcon('solo')}<strong>${appText('아직 만든 문제가 없어요','No puzzles yet')}</strong>${appText('직접 만든 스도쿠가 여기에 모여요.','Your own puzzles will appear here.')}</div>`}</div></section>`}
+function customProgressLabel(p){
+ if(failedAttack(p.id))return `<strong class="failed-label">${appText('실패','Failed')}</strong>`;
+ if(runOf(p.id)?.status==='running')return appText('진행 중','In progress');
+ let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return '시작 전'}
+function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header custom-header"><h1 class="panel-title">내 스도쿠</h1><button class="primary compact create-puzzle" type="button" data-action="new-custom">${appIcon('plus')}<span>${appText('만들기','Create')}</span></button>${guideButton()}</div>${state.editor?`<div class="notice" style="margin:0 0 15px">만들던 문제가 있어요. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card${failedAttack(p.id)?' failed':''}"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):`<div class="empty">${appIcon('solo')}<strong>${appText('아직 만든 문제가 없어요','No puzzles yet')}</strong>${appText('직접 만든 스도쿠가 여기에 모여요.','Your own puzzles will appear here.')}</div>`}</div></section>`}
 function historyAccordion(key,title,total,content,isOpen=false){return `<section class="history-section ${isOpen?'open':''}" data-history-section="${key}"><button type="button" class="history-heading" data-action="history-toggle" aria-expanded="${isOpen}" aria-controls="history-body-${key}"><span class="history-heading-title">${title}</span><span class="history-count">${total}</span><svg viewBox="0 0 24 24" class="history-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="history-collapsible" id="history-body-${key}"><div class="history-collapsible-inner">${content}</div></div></section>`}
 function historyToggle(button){const section=button.closest('.history-section');if(!section)return;const open=!section.classList.contains('open');section.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open))}
 function historyToggleMore(button){const parent=button.closest('[data-history-list]');if(!parent)return;const show=button.getAttribute('aria-expanded')!=='true';parent.querySelectorAll('.pvp-extra-entry').forEach(el=>el.hidden=!show);button.setAttribute('aria-expanded',String(show));button.textContent=show?'접기':'더보기'}
