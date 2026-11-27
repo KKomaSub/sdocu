@@ -73,13 +73,30 @@ for(let i=0;i<3;i++)loseTimeAttackLife(3);
 check(loadState().timeAttackRuns.b002.status==='lost','zero hearts persists failure');
 const cards=document.createElement('div');cards.innerHTML=catalogCardsHtml();
 const card=id=>cards.querySelector('[data-id="'+id+'"]');
-check(card('b002').classList.contains('failed') && card('b002').querySelector('small').textContent==='실패','loss overrides practice progress');
+check(!card('b002').textContent.includes('실패') && card('b002').classList.contains('in-progress'),'preserve independent practice progress');
+check(!document.querySelector('#toast').classList.contains('visible'),'no wrong-answer toast');
 check(card('b003').classList.contains('in-progress') && card('b004').querySelector('small').textContent==='시작 전','running and unstarted remain distinct');
 delete performance.now;
 showGameOver();
 scene('.gameover-card','.heart-left','heart-crack-left');
 check(document.querySelector('#gameOverTime').textContent.includes('45'),'elapsed time');
+const rewardButton=document.querySelector('#reviveAdBtn');
+const inlineReward=document.querySelector('[data-ad-slot="board"]');
+window.prompt=(msg)=>msg==='sudoku:reward'?'ok':'';
+rewardButton.click();
+check(rewardButton.disabled && rewardButton.querySelector('.ad-spinner') && !inlineReward.disabled,'load on tapped modal button');
+mateAdResult(nativeAd.token,'closed');
+check(!rewardButton.disabled && !rewardButton.querySelector('.ad-spinner'),'restore cancelled reward');
 endGameOver();
+inlineReward.click();
+renderPlay();
+check(document.querySelector('[data-ad-slot="board"]').disabled && !rewardButton.disabled,'inline reward survives re-render');
+mateAdResult(nativeAd.token,'earned');
+check(runOf('b002').lives===1,'revive rewarded');
+runOf('b002').hintsUsed=MAX_HINTS;renderPlay();
+const hint=document.querySelector('[data-action="ad-hint"]');
+hint.click();check(hint.disabled && hint.querySelector('.ad-spinner'),'hint loading on tapped button');
+mateAdResult(nativeAd.token,'unavailable');check(!hint.disabled,'hint re-enabled on failure');
 pvp.role='host';
 for(const [winner,kind,part,animation] of [[1,'lose','.flag-cloth','finish-unfurl'],[0,'win','.medal-face','medal-land'],[null,'tie','.tie-first','rings-meet']]){
  pvp.match={id:kind,finished:true,winner,players:[{lives:1,score:6},{lives:1,score:4}]};
@@ -92,6 +109,18 @@ for(const [winner,kind,part,animation] of [[1,'lose','.flag-cloth','finish-unfur
 launchVictory('1');
 scene('.celebration-card','.medal-face','medal-land');
 endVictory();
+pvp.match=null;pvp.role=null;
+let joined='';
+pvpGuestJoin=()=>{joined=pvp.joinCode};
+inviteReady=true;
+receiveRoomInvite('0007');
+check(state.view==='pvp' && pvp.mode==='friend' && joined==='0007','received invitation joins exact room');
+receiveRoomInvite('abcd');check(joined==='0007','ignore malformed invite');
+pvp.role='host';pvp.roomCode='0007';pvp.conn='waiting';pvpRender();
+let shared='';
+window.prompt=(msg,value)=>{if(msg==='sudoku:share')shared=value;return 'ok'};
+document.querySelector('[data-action="pvp-share"]').click();
+check(shared==='0007' && pvpShareURL().endsWith('/invite?room=0007'),'open native share with hosted room');
 """
 with tempfile.TemporaryDirectory() as temp:
     root = Path(temp)

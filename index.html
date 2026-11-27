@@ -153,14 +153,13 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 </div>
 <div id="gameOver" class="gameover" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
  <div class="gameover-card"><div class="result-scene" aria-hidden="true">
-  <div class="result-orbit"></div><i class="result-spark spark-one"></i><i class="result-spark spark-two"></i><i class="result-spark spark-three"></i>
   <svg class="result-art" viewBox="0 0 96 96" fill="none" stroke-linecap="round" stroke-linejoin="round" focusable="false"><g class="heart-piece heart-left"><path fill="#e85070" d="M48 75 20 49C1 30 27 7 44 25l4 5-7 14 9 4-7 11z"/><path d="M20 35c0-7 5-11 11-11" stroke="#ffb3be" stroke-width="4"/></g>
     <g class="heart-piece heart-right"><path fill="#b32f58" d="m48 75-5-16 7-11-9-4 7-14 4-5C69 7 95 30 76 49z"/><path d="m68 49-11 10" stroke="#d7496e" stroke-width="4"/></g></svg>
 </div>
   <h2 id="gameOverTitle">하트를 모두 썼어요</h2>
   <div class="result-time"><span>풀이 시간</span><strong id="gameOverTime"></strong></div>
-  <p id="gameOverDesc"></p>
-  <div class="gameover-actions"><button class="ad-offer" id="reviveAdBtn" type="button" data-action="ad-revive">영상 보고 하트 1개 받기</button><button class="primary" data-action="time-retry">다시 도전하기</button><button class="ghost" data-action="time-normal">연습 모드로 돌아가기</button></div>
+
+  <div class="gameover-actions"><button class="ad-offer" id="reviveAdBtn" data-ad-slot="result" type="button" data-action="ad-revive">광고로 하트 +1</button><button class="primary" data-action="time-retry">다시 도전하기</button><button class="ghost" data-action="time-normal">연습 모드</button></div>
  </div>
 </div>
 <div id="selfAdOverlay" class="self-video-ad" role="dialog" aria-modal="true" aria-labelledby="selfAdLabel" hidden><div class="self-ad-top"><strong id="selfAdLabel">자체 홍보 영상</strong><button type="button" data-action="ad-cancel" class="self-ad-close" aria-label="영상 닫기">✕</button></div><video id="selfAdVideo" playsinline preload="auto" muted disablepictureinpicture controlslist="nodownload noplaybackrate nofullscreen" aria-label="스도쿠 홍보 영상"></video><div class="self-ad-bottom"><div class="self-ad-progress"><div id="selfAdProgress"></div></div></div></div>
@@ -343,7 +342,6 @@ function solutionFor(puz,p,preferEntered=false){if(puz.solution)return {solution
 const MAX_HINTS=2;
 const timeMode=()=>state.playMode==='time';
 const runOf=id=>state.timeAttackRuns[id]||null;
-const failedAttack=id=>{const run=runOf(id);return run?.status==='lost'&&run.lives===0};
 const attackSolution=(puz,run)=>puz.solution||run?.solution||null;
 function formatElapsed(ms){ms=Math.max(0,Math.floor(ms));let m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),c=Math.floor(ms%1000/10);return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`}
 const clockAnchors=new Map();
@@ -411,16 +409,16 @@ let selfVideoBlobUrl=null;
 function adRequestValid(req){let run=runOf(req.puzzleId);if(!run||run!==req.runRef||state.playMode!=='time'||state.activeId!==req.puzzleId)return false;
  return req.reward==='revive'&&run.status==='lost'&&run.lives===0}
 function hideAdOverlay(){const el=$('#selfAdOverlay');el.hidden=true;const video=$('#selfAdVideo');video.pause();video.removeAttribute('src');video.load();$('#selfAdProgress').style.width='0%'}
-function finishSelfVideoAd(rewarded){let req=adRequest;if(!req||req.finished)return;req.finished=true;adRequest=null;hideAdOverlay();
+function finishSelfVideoAd(rewarded){let req=adRequest;if(!req||req.finished)return;req.finished=true;adRequest=null;releaseAdButton({slot:req.button.dataset.adSlot,content:req.content});hideAdOverlay();
  
  if(rewarded&&adRequestValid(req)){
   const run=req.runRef;
   if(req.reward==='revive'){
    run.lives=1;
    run.activeMs=run.finalMs;run.finishedAt=0;run.finalMs=0;run.status='running';checkpointClocks();endGameOver();
-   hintPreview=null;persist();renderPlay();notify(appText("하트 1개를 받았어요.","You earned 1 heart."))
+   hintPreview=null;persist();renderPlay()
   }
- }else{persist();if(req.reward==='revive'&&timeMode()&&runOf(req.puzzleId)?.status==='lost')showGameOver();notify('영상을 끝까지 보면 하트를 받을 수 있어요.')}
+ }else{persist();if(req.reward==='revive'&&timeMode()&&runOf(req.puzzleId)?.status==='lost')showGameOver()}
 }
 function stopSelfVideoAd(){finishSelfVideoAd(false)}
 function handleVideoSeeking(){const req=adRequest,video=$('#selfAdVideo');if(!req||req.finished)return;
@@ -437,15 +435,36 @@ function handleVideoEnded(){const req=adRequest,video=$('#selfAdVideo');if(!req|
  const playedEnough=Number.isFinite(duration)&&duration>0&&req.maxPlayed>=duration-0.45&&Date.now()-req.startedAt>=duration*750;
  finishSelfVideoAd(playedEnough);}
 let nativeAd=null;
-function requestNativeAd(kind){
+function syncAdButton(){
+ if(!nativeAd||!mateAdStillValid(nativeAd.token))return;
+ const button=document.querySelector('[data-ad-slot="'+nativeAd.slot+'"]');
+ if(!button||button.hasAttribute('aria-busy'))return;
+ button.parentElement.querySelector('.ad-error')?.remove();
+ nativeAd.content=button.innerHTML;
+ button.disabled=true;
+ button.setAttribute('aria-busy','true');
+ button.innerHTML='<i class="ad-spinner" aria-hidden="true"></i><span>'+appText('불러오는 중','Loading')+'</span>';
+}
+function releaseAdButton(req){
+ const button=document.querySelector('[data-ad-slot="'+req.slot+'"][aria-busy="true"]');
+ if(button){button.removeAttribute('aria-busy');button.disabled=false;button.innerHTML=req.content}
+}
+function showAdError(button){
+ if(!button?.isConnected)return;
+ const message=document.createElement('small');
+ message.className='ad-error';message.setAttribute('role','status');
+ message.textContent=appText('광고를 불러오지 못했어요. 다시 시도해 주세요.','Ad unavailable. Try again.');
+ button.after(message);
+}
+function requestNativeAd(kind,button){
  if(nativeAd)return;
  const id=state.activeId, timed=timeMode(), progress=timed?runOf(id):state.progress[id];
  if(!progress || (kind==='revive'?(!timed||progress.status!=='lost'||progress.lives):
    ((timed&&progress.status!=='running')||progress.hintsUsed!==MAX_HINTS+(progress.bonusHints||0))))return;
  const token=crypto.randomUUID();
- nativeAd={id,timed,progress,kind,token};
- if(window.prompt('sudoku:reward',kind+'|'+token)!=='ok'){nativeAd=null;notify(appText('지금은 광고를 볼 수 없어요.','Ads are unavailable right now.'));return}
- notify(appText('광고를 불러오는 중이에요.','Loading ad…'));
+ nativeAd={id,timed,progress,kind,token,slot:button.dataset.adSlot};
+ syncAdButton();
+ if(window.prompt('sudoku:reward',kind+'|'+token)!=='ok'){releaseAdButton(nativeAd);nativeAd=null;showAdError(button);return}
 }
 function mateAdStillValid(token){
  const req=nativeAd;
@@ -454,47 +473,55 @@ function mateAdStillValid(token){
 }
 function mateAdResult(token,status){
  if(!nativeAd||nativeAd.token!==token)return;
- const valid=mateAdStillValid(token),{progress,kind}=nativeAd;
+ const valid=mateAdStillValid(token),{progress,kind,slot}=nativeAd;
+ releaseAdButton(nativeAd);
  nativeAd=null;
  if(!valid)return;
  if(status!=='earned'){
-  notify(status==='closed'?appText('보상을 받으려면 광고를 끝까지 봐 주세요.','Finish the ad to earn the reward.'):appText('광고를 불러올 수 없어요. 잠시 후 다시 시도해 주세요.','Ad unavailable. Please try again later.'));
+  if(status!=='closed')showAdError(document.querySelector('[data-ad-slot="'+slot+'"]'));
   return;
  }
  if(kind==='revive' && progress.status==='lost' && !progress.lives){
   progress.lives=1;progress.activeMs=progress.finalMs;progress.finalMs=0;progress.finishedAt=0;progress.status='running';
-  endGameOver();checkpointClocks();notify(appText('하트 1개를 받았어요.','You earned 1 heart.'));
+  endGameOver();checkpointClocks();
  }else if(kind==='hint' && progress.hintsUsed===MAX_HINTS+(progress.bonusHints||0)){
-  progress.bonusHints=(progress.bonusHints||0)+1;notify(appText('힌트 1개를 받았어요.','You earned 1 hint.'));
+  progress.bonusHints=(progress.bonusHints||0)+1;
  }
  persist();renderPlay();
 }
-function requestRewardAd(reward){if(window.MATE_ANDROID){requestNativeAd(reward);return}if(adRequest){notify('광고 영상을 재생하는 중입니다.');return}
+function requestRewardAd(reward,button){if(window.MATE_ANDROID){requestNativeAd(reward,button);return}if(adRequest){notify('광고 영상을 재생하는 중입니다.');return}
  const puz=getPuzzle(state.activeId),run=runOf(state.activeId);
  if(!puz||!run||!timeMode()){notify('타임어택에서만 영상 보상을 받을 수 있습니다.');return}
  if(reward==='revive'){
   if(run.status!=='lost'||run.lives!==0)return
  }else return;
- let req={reward,puzzleId:puz.id,runRef:run,finished:false,startedAt:Date.now(),maxPlayed:0};adRequest=req;
- if(reward==='revive')endGameOver();
- const overlay=$('#selfAdOverlay'),video=$('#selfAdVideo');overlay.hidden=false;video.pause();video.removeAttribute('src');video.src=$('#selfAdVideoDefault').value;
+ const req={reward,puzzleId:puz.id,runRef:run,finished:false,startedAt:Date.now(),maxPlayed:0,button,content:button.innerHTML};
+ adRequest=req;button.disabled=true;button.setAttribute('aria-busy','true');
+ button.innerHTML='<i class="ad-spinner" aria-hidden="true"></i><span>'+appText('불러오는 중','Loading')+'</span>';
+ const overlay=$('#selfAdOverlay'),video=$('#selfAdVideo');
+ video.pause();video.src=$('#selfAdVideoDefault').value;
  video.currentTime=0;video.muted=true;video.playsInline=true;video.controls=false;
  $('#selfAdProgress').style.width='0%';
- video.play().catch(()=>{if(adRequest===req){finishSelfVideoAd(false);notify('영상을 재생할 수 없어요. 잠시 후 다시 시도해 주세요.')}});
+ video.play().then(()=>{
+  if(adRequest!==req)return;
+  if(!adRequestValid(req)||state.view!=='play'){finishSelfVideoAd(false);return}
+  endGameOver();overlay.hidden=false;
+ }).catch(()=>{if(adRequest===req){finishSelfVideoAd(false);showAdError(button)}});
+
 }
 function recordTimeAttackWin(puz,run){let when=Date.now();run.finalMs=Math.max(1,elapsedAttack(run));run.status='won';run.finishedAt=when;clockAnchors.delete(run);let old=state.timeAttackBests[puz.id],improved=!old||run.finalMs<old.bestMs;
  if(improved)state.timeAttackBests[puz.id]={bestMs:run.finalMs,at:when,title:puz.title,level:puz.level};persist();renderPlay();launchVictory(puz.title,formatElapsed(run.finalMs)+(improved?' — '+appText('새 최고 기록','New personal best'):''));}
 function loseTimeAttackLife(index){const run=runOf(state.activeId),puz=getPuzzle(state.activeId);if(!run||run.status!=='running')return;
  run.lives=Math.max(0,run.lives-1);if(!run.lives){run.finalMs=elapsedAttack(run);run.status='lost';run.finishedAt=Date.now();clockAnchors.delete(run)}
  persist();renderPlay();let boardCell=$(`#main .cell[data-index="${index}"]`);boardCell?.classList.add('hit-error');let hearts=$('#main .attack-hearts');hearts?.classList.add('damage-shake');hearts?.querySelector(`[data-life="${run.lives+1}"]`)?.classList.add('heart-lost');
- if(run.lives===0){setTimeout(()=>showGameOver(),400)}else notify(appText(`틀렸어요. 하트가 ${run.lives}개 남았어요.`,`Incorrect. ${run.lives===1?"1 heart":run.lives+" hearts"} left.`))}
+ if(run.lives===0)setTimeout(()=>{if(runOf(state.activeId)===run)showGameOver()},400)}
 function showGameOver(){
  const run=runOf(state.activeId);
  if(state.view!=='play'||!timeMode()||run?.status!=='lost')return;
  const elapsed=formatElapsed(elapsedAttack(run));
  $('#gameOverTime').previousElementSibling.textContent=appText('풀이 시간','Time played');
  $('#gameOverTime').textContent=elapsed;
- $('#gameOverDesc').textContent=appText('영상을 보면 이 자리에서 이어 풀 수 있어요.','Watch a video to continue this puzzle.');
+ $('#reviveAdBtn').parentElement.querySelector('.ad-error')?.remove();
  $('#gameOver').hidden=false;
 }
 function endGameOver(){$('#gameOver').hidden=true}
@@ -531,14 +558,14 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
   const rule=won||lost?'':appText('숫자를 틀릴 때마다 하트가 하나씩 줄어요.','Each mistake costs one heart.');
   start=`<div class="attack-start ${lost?'attack-finished':''}"><strong>${title}</strong>${rule}
    <button type="button" class="primary" data-action="time-start">${run?appText('다시 도전하기','Try again'):appText('타임어택 시작','Start time attack')}</button>
-   ${lost?`<button type="button" class="ad-offer" data-action="ad-revive">${appText('영상 보고 하트 1개 받기','Watch for 1 heart')}</button>`:''}</div>`;
+   ${lost?`<button type="button" class="ad-offer" data-ad-slot="board" data-action="ad-revive">${appText('영상 보고 하트 1개 받기','Watch for 1 heart')}</button>`:''}</div>`;
  }
  const hints=p.hintsUsed||0,remainingHints=MAX_HINTS+(p.bonusHints||0)-hints;
  const canEarnHint=window.MATE_ANDROID && !remainingHints && canEdit && !solved;
  const tools=`<div class="play-tools" role="group" aria-label="${appText('풀이 도구','Puzzle tools')}">
   <button class="tool ${state.noteMode?'active':''}" data-action="toggle-notes" aria-pressed="${state.noteMode}" ${canEdit?'':'disabled'}>${appIcon('note')}<span>${appText('메모','Notes')}</span></button>
   <button class="tool" data-action="${state.noteMode?'digit-note':'digit'}" data-digit="0" ${disabled||!canEdit?'disabled':''}>${appIcon('erase')}<span>${appText('지우기','Erase')}</span></button>
-  <button class="tool" data-action="${canEarnHint?'ad-hint':'show-hint'}" ${!canEdit||(!remainingHints&&!canEarnHint)||solved?'disabled':''}>${appIcon('hint')}<span>${canEarnHint?appText('광고로 힌트 +1','Ad: +1 hint'):appText('힌트','Hint')} ${canEarnHint?'':`<small>${remainingHints}</small>`}</span></button>
+  <button class="tool" data-ad-slot="hint" data-action="${canEarnHint?'ad-hint':'show-hint'}" ${!canEdit||(!remainingHints&&!canEarnHint)||solved?'disabled':''}>${appIcon('hint')}<span>${canEarnHint?appText('광고로 힌트 +1','Ad: +1 hint'):appText('힌트','Hint')} ${canEarnHint?'':`<small>${remainingHints}</small>`}</span></button>
  </div>`;
  const other=`<div class="play-options"><button class="tool ${state.showMistakes?'active':''}" data-action="toggle-mistakes" aria-pressed="${state.showMistakes}">${appIcon('check')}${appText('오류 표시','Show errors')}</button>
   <button class="tool" data-action="reset-progress">${appIcon('reset')}${timeMode()?appText('다시 도전','Restart run'):appText('초기화','Reset')}</button></div>`;
@@ -550,11 +577,12 @@ function renderPlay(){const puz=getPuzzle(state.activeId);if(!puz){state.activeI
   ${gridHtml(puz,p,selected)}${start}${tools}${keyboardHtml(state.noteMode,mask,disabled||!canEdit,false)}${other}
  </section>`;
  updateStopwatch();
+ syncAdButton();
 }
 function markCompleted(puz,p){let time=Date.now();p.done=true;p.completedAt=time;state.history=state.history.filter(v=>v.id!==puz.id);state.history.unshift({id:puz.id,title:puz.title,at:time,level:puz.level})}
 function enterNumber(val,note){hintPreview=null;let puz=getPuzzle(state.activeId),i=state.selected;
  if(!puz||!Number.isInteger(i)||i<0||i>=81)return;
- if(puz.givens[i]!=='0'){notify('기본 숫자는 바꿀 수 없습니다.');return}
+ if(puz.givens[i]!=='0')return;
  if(timeMode()){
   let r=runOf(puz.id);if(!r||r.status!=='running'){notify('먼저 타임어택을 시작해 주세요.');return}
   if(note){let mask=r.notes[i]||0;if(val===0)mask=0;else mask^=1<<(val-1);if(mask)r.notes[i]=mask;else delete r.notes[i];persist();renderPlay();return}
@@ -567,25 +595,23 @@ function enterNumber(val,note){hintPreview=null;let puz=getPuzzle(state.activeId
  else p.answers=setAt(p.answers,i,String(val));p.updatedAt=Date.now();let solved=isComplete(puz,p);if(!solved)p.done=false;if(solved&&!wasDone)markCompleted(puz,p);persist();renderPlay();if(solved&&!wasDone)launchVictory(puz.title)
 }
 function setSelection(index){hintPreview=null;if(!Number.isInteger(index)||index<0||index>=81)return;state.selected=index;persist();renderPlay()}
-function resetProgress(){if(timeMode()){const run=runOf(state.activeId);if(run?.status==='running')openDialog({title:'타임어택을 다시 시작할까요?',message:'지금까지 입력한 숫자와 메모가 지워지고 시간이 처음부터 시작돼요.',confirmLabel:'처음부터 도전',danger:true,onConfirm:retryTimeAttack});else retryTimeAttack();return}let p=ensureProgress(state.activeId);openDialog({title:'이 문제를 처음부터 풀까요?',message:'입력한 숫자와 메모를 지웁니다. 완료 기록은 유지됩니다.',confirmLabel:'초기화',danger:true,onConfirm:()=>{state.progress[state.activeId]={answers:EMPTY,notes:{},done:false,completedAt:0,updatedAt:Date.now(),hintsUsed:0};persist();renderPlay();notify('입력한 숫자와 메모를 지웠어요.')}})}
+function resetProgress(){if(timeMode()){const run=runOf(state.activeId);if(run?.status==='running')openDialog({title:'타임어택을 다시 시작할까요?',message:'지금까지 입력한 숫자와 메모가 지워지고 시간이 처음부터 시작돼요.',confirmLabel:'처음부터 도전',danger:true,onConfirm:retryTimeAttack});else retryTimeAttack();return}let p=ensureProgress(state.activeId);openDialog({title:'이 문제를 처음부터 풀까요?',message:'입력한 숫자와 메모를 지웁니다. 완료 기록은 유지됩니다.',confirmLabel:'초기화',danger:true,onConfirm:()=>{state.progress[state.activeId]={answers:EMPTY,notes:{},done:false,completedAt:0,updatedAt:Date.now(),hintsUsed:0};persist();renderPlay()}})}
 let catalogQuery='';
 function catalogCardsHtml(){let filtered=LEVELS.filter(l=>state.filter==='all'||state.filter===l.key).flatMap(l=>Array.from({length:75},(_,i)=>l.start+i));let q=catalogQuery.trim();if(q)filtered=filtered.filter(n=>String(n).includes(q));if(!filtered.length)return '<div class="empty" style="grid-column:1/-1"><strong>일치하는 번호가 없습니다</strong>다른 번호를 입력해 보세요.</div>';return filtered.map(n=>{
  const id=makeId(n),practice=state.progress[id],best=state.timeAttackBests[id];
  const solved=state.history.some(x=>x.id===id);
  const practicing=practice&&!practice.done&&(practice.answers!==EMPTY||Object.keys(practice.notes||{}).length>0);
  const started=runOf(id)?.status==='running'||practicing;
- const failed=failedAttack(id);
- const style=failed?'failed':started?'in-progress':best?'time-cleared':solved?'solved':'';
- const label=failed?appText('실패','Failed'):started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':'시작 전';
- return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best&&!failed?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
+ const style=started?'in-progress':best?'time-cleared':solved?'solved':'';
+ const label=started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':runOf(id)?.status==='lost'?'':'시작 전';
+ return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
 }).join('')}
 function renderCatalog(){const solved=completedBuiltinCount();$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h1 class="panel-title">문제 선택</h1><p class="panel-subtitle catalog-completed">${appIcon('check')}${completedCaption(solved)}</p></div><button class="secondary compact" data-action="return-play">이어 풀기</button>${guideButton()}</div><div class="filters">${[{key:'all',name:'전체'},...LEVELS.map(l=>({key:l.key,name:l.name}))].map(l=>`<button class="filter ${state.filter===l.key?'active':''}" data-action="filter" data-filter="${l.key}">${l.name}</button>`).join('')}</div><label class="searchbar">${iconSearch}<input type="search" id="catalogSearch" inputmode="numeric" placeholder="문제 번호 검색 (예: 125)" value="${escapeHtml(catalogQuery)}" autocomplete="off" aria-label="문제 번호 검색"></label><div id="catalogCards" class="card-grid">${catalogCardsHtml()}</div></section>`}
 function renderCatalogCards(){let elem=$('#catalogCards');if(elem)elem.innerHTML=catalogCardsHtml()}
 function customProgressLabel(p){
- if(failedAttack(p.id))return `<strong class="failed-label">${appText('실패','Failed')}</strong>`;
  if(runOf(p.id)?.status==='running')return appText('진행 중','In progress');
- let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return '시작 전'}
-function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header custom-header"><h1 class="panel-title">내 스도쿠</h1><button class="primary compact create-puzzle" type="button" data-action="new-custom">${appIcon('plus')}<span>${appText('만들기','Create')}</span></button>${guideButton()}</div>${state.editor?`<div class="notice" style="margin:0 0 15px">만들던 문제가 있어요. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card${failedAttack(p.id)?' failed':''}"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):`<div class="empty">${appIcon('solo')}<strong>${appText('아직 만든 문제가 없어요','No puzzles yet')}</strong>${appText('직접 만든 스도쿠가 여기에 모여요.','Your own puzzles will appear here.')}</div>`}</div></section>`}
+ let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return runOf(p.id)?.status==='lost'?'':'시작 전'}
+function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header custom-header"><h1 class="panel-title">내 스도쿠</h1><button class="primary compact create-puzzle" type="button" data-action="new-custom">${appIcon('plus')}<span>${appText('만들기','Create')}</span></button>${guideButton()}</div>${state.editor?`<div class="notice" style="margin:0 0 15px">만들던 문제가 있어요. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):`<div class="empty">${appIcon('solo')}<strong>${appText('아직 만든 문제가 없어요','No puzzles yet')}</strong>${appText('직접 만든 스도쿠가 여기에 모여요.','Your own puzzles will appear here.')}</div>`}</div></section>`}
 function historyAccordion(key,title,total,content,isOpen=false){return `<section class="history-section ${isOpen?'open':''}" data-history-section="${key}"><button type="button" class="history-heading" data-action="history-toggle" aria-expanded="${isOpen}" aria-controls="history-body-${key}"><span class="history-heading-title">${title}</span><span class="history-count">${total}</span><svg viewBox="0 0 24 24" class="history-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="history-collapsible" id="history-body-${key}"><div class="history-collapsible-inner">${content}</div></div></section>`}
 function historyToggle(button){const section=button.closest('.history-section');if(!section)return;const open=!section.classList.contains('open');section.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open))}
 function historyToggleMore(button){const parent=button.closest('[data-history-list]');if(!parent)return;const show=button.getAttribute('aria-expanded')!=='true';parent.querySelectorAll('.pvp-extra-entry').forEach(el=>el.hidden=!show);button.setAttribute('aria-expanded',String(show));button.textContent=show?'접기':'더보기'}
@@ -605,17 +631,17 @@ function renderHistory(){
  const normalBody=normal.length?`<div class="history-list">${normal.map(v=>{let exists=!!getPuzzle(v.id);return `<article class="history-item"><div><b>✓ ${escapeHtml(v.title)}</b><span>${dateDisplay(v.at)} ${v.level==='custom'?'내 문제':'기본 문제'}</span></div><button class="${exists?'secondary':'ghost'} compact" data-action="open-game" data-mode="normal" data-id="${escapeHtml(v.id)}" ${exists?'':'disabled'}>${exists?'다시 보기':'삭제됨'}</button></article>`}).join('')}</div>`:empty('아직 완료한 문제가 없습니다','문제를 모두 맞히면 기록됩니다.');
  const attackBody=attacks.length?`<div class="history-list">${attacks.map(([id,r])=>`<article class="history-item history-time-clear"><div><span class="history-gold-label">★ 타임어택 완료</span><b>${escapeHtml(getPuzzle(id)?.title||r.title)}</b><span>${dateDisplay(r.at)}</span></div><div class="history-time-result"><strong>${formatElapsed(r.bestMs)}</strong><button class="secondary compact" data-action="open-game" data-mode="time" data-id="${escapeHtml(id)}">다시 보기</button></div></article>`).join('')}</div>`:empty('아직 완주한 타임어택이 없어요','타임어택을 완주하면 여기에 표시됩니다.');
  const duelBody=duels.length?`<div class="history-list" data-history-list="duels">${duels.map((v,i)=>`<article class="history-item ${i>=3?'pvp-extra-entry':''}" ${i>=3?'hidden':''}><div><b class="${v.result==='승리'?'history-duel-win':v.result==='패배'?'history-duel-lose':''}">${escapeHtml(v.result)} ${escapeHtml(v.opponent)} 상대</b><span>${dateDisplay(v.at)} ${escapeHtml(PVP_LEVELS[v.level]?.name||'대결')} ${v.score} : ${v.otherScore}</span></div>${v.soloId&&getPuzzle(v.soloId)?`<button class="secondary compact" data-action="pvp-history-solo" data-id="${escapeHtml(v.soloId)}">이어 풀기</button>`:''}</article>`).join('')}${duels.length>3?'<button type="button" class="history-more" data-action="history-more" aria-expanded="false">더보기</button>':''}</div>`:empty('대결 기록이 없습니다','첫 대결을 마치면 결과를 볼 수 있어요.');
- $('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h2 class="panel-title">완료 기록</h2><p class="panel-subtitle">진행 중인 문제와 모드별 결과</p></div>${guideButton()}</div><div class="history-accordion-list">${historyAccordion('recent','최근 풀던 문제',recent.length,recentBody,true)}${historyAccordion('completed','완료한 문제',normal.length,normalBody)}${historyAccordion('time','타임어택',attacks.length,attackBody)}${historyAccordion('pvp','대결 기록',duels.length,duelBody)}</div></section>`;
+ $('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h2 class="panel-title">완료 기록</h2></div>${guideButton()}</div><div class="history-accordion-list">${historyAccordion('recent','최근 풀던 문제',recent.length,recentBody,true)}${historyAccordion('completed','완료한 문제',normal.length,normalBody)}${historyAccordion('time','타임어택',attacks.length,attackBody)}${historyAccordion('pvp','대결 기록',duels.length,duelBody)}</div></section>`;
 }
 function beginEditor(id){let p=id?state.custom.find(x=>x.id===id):null;if(id&&!p)return notify('문제를 찾을 수 없습니다.');state.editor=p?{id:p.id,name:p.name,givens:p.givens,selected:p.givens.indexOf('0')>=0?p.givens.indexOf('0'):0,difficulty:'medium'}:{id:null,name:`${window.SUDOKU_LANG==='en'?'My Sudoku':'내 스도쿠'} ${state.custom.length+1}`,givens:EMPTY,selected:0,difficulty:'medium'};state.view='editor';persist();render();window.scrollTo({top:0,behavior:'auto'})}
 function renderEditor(){if(!state.editor){state.view='custom';return renderCustom()}let d=state.editor,given=d.givens.split('').filter(x=>x!=='0').length,clash=conflicts(d.givens);let pseudo={givens:d.givens};
 $('#main').innerHTML=`<section class="panel"><div class="studio-head"><div><h2 class="panel-title">${d.id?'문제 편집':'직접 만들기'}</h2></div><button class="ghost compact" data-action="editor-back">내 문제 목록</button></div><div class="editor-setup"><div><label class="field-label" for="editorName">문제 이름</label><input id="editorName" class="text-input" maxlength="30" value="${escapeHtml(d.name)}" placeholder="예: 내가 만든 어려운 스도쿠" autocomplete="off"></div><div><label class="field-label" for="autoDifficulty">자동 생성 난이도</label><div class="editor-actions"><select class="text-input grow" id="autoDifficulty">${LEVELS.map(l=>`<option value="${l.key}" ${d.difficulty===l.key?'selected':''}>${l.name}</option>`).join('')}</select><button class="secondary" data-action="auto-generate" id="autoGenerateBtn">자동 생성</button></div></div></div><p class="studio-tip">${appText('칸을 고른 뒤 숫자를 넣어 보세요. 자동으로 만든 문제도 수정할 수 있어요.','Choose a cell, then enter a number. You can also edit an automatically generated puzzle.')}</p><div class="statusbar"><span>고정 숫자 ${given}개 / 81칸</span><strong>${clash.size?'숫자가 겹쳐요':'자동 저장'}</strong></div>${gridHtml(pseudo,{answers:EMPTY,notes:{}},d.selected,true)}${keyboardHtml(false,0,false)}<div class="studio-submit"><button class="ghost compact" data-action="editor-clear">전체 지우기</button><button class="secondary compact" data-action="editor-check">정답 개수 확인</button><button class="primary" data-action="editor-save">${d.id?'수정 저장하고 풀기':'저장하고 풀기'}</button></div>${clash.size?`<div class="notice warn">${appText('겹치는 숫자를 고치면 저장할 수 있어요.','Fix duplicate numbers to save this puzzle.')}</div>`:''}</section>`}
 function editorNumber(v){if(!state.editor)return;let i=state.editor.selected;state.editor.givens=setAt(state.editor.givens,i,String(v));persist();renderEditor()}
 function editorValidate(){let d=state.editor;if(!d)return false;let name=d.name.trim();if(!name){notify('문제 이름을 입력하세요.');$('#editorName')?.focus();return false}let amount=d.givens.split('').filter(v=>v!=='0').length;if(amount===0){notify('최소 한 칸에 고정 숫자를 입력하세요.');return false}if(conflicts(d.givens).size){notify('같은 줄이나 3×3 구역에 겹치는 숫자가 있어요.');return false}return true}
-function editorCommit(){let d=state.editor;if(!d||!editorValidate())return;let now=Date.now(),name=d.name.trim();if(d.id){let o=state.custom.find(x=>x.id===d.id);if(!o)return;let changed=o.givens!==d.givens;o.name=name;o.givens=d.givens;o.updatedAt=now;if(changed){delete state.progress[o.id];delete state.timeAttackRuns[o.id];delete state.timeAttackBests[o.id];state.history=state.history.filter(v=>v.id!==o.id)}else{state.history.forEach(v=>{if(v.id===o.id)v.title=name});if(state.timeAttackBests[o.id])state.timeAttackBests[o.id].title=name}state.activeId=o.id}else{let id='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);state.custom.unshift({id,name,givens:d.givens,createdAt:now,updatedAt:now});state.activeId=id}state.editor=null;state.view='play';state.noteMode=false;state.selected=d.givens.indexOf('0')>=0?d.givens.indexOf('0'):0;persist();render();notify('내 스도쿠에 저장했습니다.')}
+function editorCommit(){let d=state.editor;if(!d||!editorValidate())return;let now=Date.now(),name=d.name.trim();if(d.id){let o=state.custom.find(x=>x.id===d.id);if(!o)return;let changed=o.givens!==d.givens;o.name=name;o.givens=d.givens;o.updatedAt=now;if(changed){delete state.progress[o.id];delete state.timeAttackRuns[o.id];delete state.timeAttackBests[o.id];state.history=state.history.filter(v=>v.id!==o.id)}else{state.history.forEach(v=>{if(v.id===o.id)v.title=name});if(state.timeAttackBests[o.id])state.timeAttackBests[o.id].title=name}state.activeId=o.id}else{let id='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);state.custom.unshift({id,name,givens:d.givens,createdAt:now,updatedAt:now});state.activeId=id}state.editor=null;state.view='play';state.noteMode=false;state.selected=d.givens.indexOf('0')>=0?d.givens.indexOf('0'):0;persist();render()}
 function editorSave(){if(!editorValidate())return;let d=state.editor,old=d.id?state.custom.find(p=>p.id===d.id):null;if(old&&old.givens!==d.givens&&state.progress[d.id]&&(state.progress[d.id].answers!==EMPTY||Object.keys(state.progress[d.id].notes).length||state.history.some(v=>v.id===d.id))){openDialog({title:'수정한 문제를 저장할까요?',message:'고정 숫자가 바뀌어 이 문제의 기존 풀이 메모 완료 기록이 초기화됩니다. 다른 문제의 기록은 유지됩니다.',confirmLabel:'수정 저장',danger:true,onConfirm:editorCommit});return}editorCommit()}
-function renameCustom(id){let p=state.custom.find(x=>x.id===id);if(!p)return;openDialog({title:'문제 이름 변경',message:'새 이름을 입력하세요. 기존 풀이와 메모는 유지됩니다.',input:p.name,confirmLabel:'이름 저장',onConfirm:value=>{let title=value.trim();if(!title){notify('이름을 입력하세요.');return}p.name=title.slice(0,30);p.updatedAt=Date.now();state.history.forEach(v=>{if(v.id===p.id)v.title=p.name});if(state.timeAttackBests[p.id])state.timeAttackBests[p.id].title=p.name;persist();renderCustom();notify('이름이 변경되었습니다.')}})}
-function deleteCustom(id){let p=state.custom.find(x=>x.id===id);if(!p)return;openDialog({title:'문제를 삭제할까요?',message:appText(`‘${p.name}’ 문제와 풀이 기록, 메모가 함께 삭제돼요. 삭제한 문제는 복구할 수 없어요.`,`Delete “${p.name}”, its records and notes? This cannot be undone.`),confirmLabel:'삭제',danger:true,onConfirm:()=>{state.custom=state.custom.filter(x=>x.id!==id);delete state.progress[id];delete state.timeAttackRuns[id];delete state.timeAttackBests[id];state.history=state.history.filter(v=>v.id!==id);if(state.activeId===id)state.activeId='b001';if(state.editor?.id===id)state.editor=null;persist();renderCustom();notify('문제를 삭제했습니다.')}})}
+function renameCustom(id){let p=state.custom.find(x=>x.id===id);if(!p)return;openDialog({title:'문제 이름 변경',message:'새 이름을 입력하세요. 기존 풀이와 메모는 유지됩니다.',input:p.name,confirmLabel:'이름 저장',onConfirm:value=>{let title=value.trim();if(!title){notify('이름을 입력하세요.');return}p.name=title.slice(0,30);p.updatedAt=Date.now();state.history.forEach(v=>{if(v.id===p.id)v.title=p.name});if(state.timeAttackBests[p.id])state.timeAttackBests[p.id].title=p.name;persist();renderCustom()}})}
+function deleteCustom(id){let p=state.custom.find(x=>x.id===id);if(!p)return;openDialog({title:'문제를 삭제할까요?',message:appText(`‘${p.name}’ 문제와 풀이 기록, 메모가 함께 삭제돼요. 삭제한 문제는 복구할 수 없어요.`,`Delete “${p.name}”, its records and notes? This cannot be undone.`),confirmLabel:'삭제',danger:true,onConfirm:()=>{state.custom=state.custom.filter(x=>x.id!==id);delete state.progress[id];delete state.timeAttackRuns[id];delete state.timeAttackBests[id];state.history=state.history.filter(v=>v.id!==id);if(state.activeId===id)state.activeId='b001';if(state.editor?.id===id)state.editor=null;persist();renderCustom()}})}
 function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
 function randomPuzzle(lvl){let l=LEVELS.find(v=>v.key===lvl)||LEVELS[1],source=BUILTINS[l.start-1+Math.floor(Math.random()*75)][0];let digits=[0,...shuffle([1,2,3,4,5,6,7,8,9])],bands=shuffle([0,1,2]),stacks=shuffle([0,1,2]);let rows=bands.flatMap(b=>shuffle([0,1,2]).map(k=>3*b+k)),cols=stacks.flatMap(b=>shuffle([0,1,2]).map(k=>3*b+k)),trans=Math.random()<.5;let out='';for(let r=0;r<9;r++)for(let c=0;c<9;c++){let sr=trans?cols[c]:rows[r],sc=trans?rows[r]:cols[c],v=+source[sr*9+sc];out+=v?digits[v]:'0'}return out}
 function countSolutions(givens,limit=2,budget=60000){let grid=toArr(givens),rows=Array(9).fill(0),cols=Array(9).fill(0),boxes=Array(9).fill(0),visits=0,found=0;for(let i=0;i<81;i++){let n=grid[i];if(!n)continue;let bit=1<<(n-1),r=Math.floor(i/9),c=i%9,b=Math.floor(r/3)*3+Math.floor(c/3);if((rows[r]|cols[c]|boxes[b])&bit)return {found:0,limited:false};rows[r]|=bit;cols[c]|=bit;boxes[b]|=bit}const full=511;
@@ -623,7 +649,7 @@ function countSolutions(givens,limit=2,budget=60000){let grid=toArr(givens),rows
  rec();return {found,limited:visits>budget}}
 function popcount(x){let c=0;while(x){x&=x-1;c++}return c}
 function editorCheck(){if(!editorValidate())return;let result=countSolutions(state.editor.givens);if(result.limited)notify('검사가 너무 복잡합니다. 고정 숫자를 추가하거나 수정해 보세요.');else if(result.found===0)notify('완성할 수 없는 문제입니다. 숫자를 수정하세요.');else if(result.found===1)notify('✓ 해답이 하나뿐인 문제입니다.');else notify('정답이 여러 개예요. 연습 모드에서 풀 수 있어요.')}
-function editorAutoGenerate(){let d=state.editor;if(!d)return;let fill=()=>{d.givens=randomPuzzle(d.difficulty);d.selected=d.givens.indexOf('0');persist();renderEditor();notify('새 퍼즐을 생성했습니다. 숫자를 수정한 뒤 저장하세요.')};if(d.givens!==EMPTY)openDialog({title:'새 문제를 자동 생성할까요?',message:'현재 편집 중인 고정 숫자가 자동 생성된 숫자로 바뀝니다. 아직 저장하지 않은 수정 내용은 사라집니다.',confirmLabel:'새로 생성',onConfirm:fill});else fill()}
+function editorAutoGenerate(){let d=state.editor;if(!d)return;let fill=()=>{d.givens=randomPuzzle(d.difficulty);d.selected=d.givens.indexOf('0');persist();renderEditor()};if(d.givens!==EMPTY)openDialog({title:'새 문제를 자동 생성할까요?',message:'현재 편집 중인 고정 숫자가 자동 생성된 숫자로 바뀝니다. 아직 저장하지 않은 수정 내용은 사라집니다.',confirmLabel:'새로 생성',onConfirm:fill});else fill()}
 let modalPending=null;
 function openDialog({title,message,input=null,confirmLabel='확인',danger=false,onConfirm}){modalPending={onConfirm,hasInput:input!==null};$('#dialogTitle').textContent=window.SUDOKU_I18N?.translate(title)??title;$('#dialogMessage').textContent=window.SUDOKU_I18N?.translate(message)??message;$('#dialogInputWrap').hidden=input===null;$('#dialogInput').value=input??'';$('#dialogConfirm').textContent=window.SUDOKU_I18N?.translate(confirmLabel)??confirmLabel;$('#dialogConfirm').className=danger?'danger':'primary';const d=$('#appDialog');if(typeof d.showModal==='function')d.showModal();else d.setAttribute('open','');if(input!==null)$('#dialogInput').focus()}
 function closeDialog(){let d=$('#appDialog');if(typeof d.close==='function')d.close();else d.removeAttribute('open');modalPending=null}
@@ -633,7 +659,7 @@ function notify(text){let el=$('#toast');el.textContent=window.SUDOKU_I18N?.tran
 function handleAction(el){let act=el.dataset.action,id=el.dataset.id;
 switch(act){
 case 'view':switchView(el.dataset.view);break;
-case 'pvp-create':case 'pvp-join':case 'pvp-copy-offer':case 'pvp-share':case 'pvp-start':case 'pvp-reset':case 'pvp-leave':case 'pvp-cell':case 'pvp-digit':case 'pvp-erase':case 'pvp-note':case 'pvp-new':case 'pvp-solo':case 'pvp-outcome-close':case 'pvp-random-start':case 'pvp-random-cancel':case 'pvp-history-solo':pvpAction(el);break;
+case 'pvp-create':case 'pvp-join':case 'pvp-share':case 'pvp-start':case 'pvp-reset':case 'pvp-leave':case 'pvp-cell':case 'pvp-digit':case 'pvp-erase':case 'pvp-note':case 'pvp-new':case 'pvp-solo':case 'pvp-outcome-close':case 'pvp-random-start':case 'pvp-random-cancel':case 'pvp-history-solo':pvpAction(el);break;
 case 'open-catalog':switchView('catalog');break;
 case 'return-play':
  if(el.dataset.mode)state.playMode=el.dataset.mode;
@@ -653,8 +679,8 @@ case 'mode-time':switchPlayMode('time');break;
 case 'time-start':startTimeAttack();break;
 case 'time-retry':retryTimeAttack();break;
 case 'time-normal':endGameOver();switchPlayMode('normal');break;
-case 'ad-hint':requestNativeAd('hint');break;
-case 'ad-revive':requestRewardAd('revive');break;
+case 'ad-hint':requestNativeAd('hint',el);break;
+case 'ad-revive':requestRewardAd('revive',el);break;
 case 'ad-cancel':stopSelfVideoAd();break;
 case 'filter':state.filter=el.dataset.filter;persist();renderCatalog();break;
 case 'show-hint':showHint();break;
@@ -756,20 +782,17 @@ function pvpStopTransport(keepMatch=false){pvpHideCountdown();pvp.autoStartQueue
  if(!keepMatch){pvp.match=null;pvp.solution=null;pvp.role=null;pvp.roomCode='';pvp.joinCode='';pvp.mode='choice'}
  if(state.view==='pvp')pvpRender()
 }
-function pvpDecodePunycodeLabel(label){if(!/^xn--/i.test(label))return label;
- const source=label.slice(4).toLowerCase(),output=[],lastDash=source.lastIndexOf('-');let pos=0;
- if(lastDash>=0){for(const ch of source.slice(0,lastDash))output.push(ch.codePointAt(0));pos=lastDash+1}
- let n=128,i=0,bias=72;
- const digit=c=>c>=97&&c<=122?c-97:c>=48&&c<=57?c-48+26:-1;
- function adapt(delta,count,first){delta=first?Math.floor(delta/700):Math.floor(delta/2);delta+=Math.floor(delta/count);let k=0;while(delta>455){delta=Math.floor(delta/35);k+=36}return k+Math.floor(36*delta/(delta+38))}
- try{while(pos<source.length){let old=i,w=1,k=36;for(;;k+=36){if(pos>=source.length)throw Error('Invalid label');let v=digit(source.charCodeAt(pos++));if(v<0)throw Error('Invalid digit');i+=v*w;const t=k<=bias?1:k>=bias+26?26:k-bias;if(v<t)break;w*=36-t;if(w>0x7fffffff)throw Error('Out of range')}const count=output.length+1;bias=adapt(i-old,count,old===0);n+=Math.floor(i/count);i%=count;if(n>0x10ffff)throw Error('Invalid code point');output.splice(i,0,n);i++}return String.fromCodePoint(...output)}catch(e){return label}}
-function pvpUnicodeHost(host){return host.split('.').map(pvpDecodePunycodeLabel).join('.')}
-function pvpShareURL(){if(!pvp.roomCode)return '';try{const u=new URL(location.href);if(!/^https?:$/.test(u.protocol))return '';if(window.MATE_ANDROID)u.pathname='/';u.searchParams.set('room',pvp.roomCode);u.hash='';const host=pvpUnicodeHost(u.hostname);return `${u.protocol}//${host}${u.port?':'+u.port:''}${u.pathname}${u.search}`}catch(e){return ''}}
-async function pvpCopyShare(){const url=pvpShareURL();if(!url){notify('공유 링크는 HTTPS 웹사이트에 게임을 게시한 후 복사할 수 있습니다.');return}
- try{await navigator.clipboard.writeText(url);notify('친구에게 보낼 링크를 복사했습니다.')}catch(e){let box=$('#pvpShareURL');if(box){box.focus();box.select();document.execCommand('copy');notify('공유 링크를 선택했습니다.')}else notify('링크를 복사하지 못했습니다.')}
-}
-function pvpInviteFromURL(){let room='';try{room=new URLSearchParams(location.search).get('room')||''}catch(e){}if(!/^\d{4}$/.test(room)||!/^https?:$/.test(location.protocol))return;
- pvp.mode='friend';appFriendSettingsToGame();pvp.joinCode=room;finishAppNavigation('pvp');pvpGuestJoin()
+function pvpShareURL(){return /^\d{4}$/.test(pvp.roomCode)?'https://스도쿠.kro.kr/invite?room='+pvp.roomCode:''}
+async function shareRoom(){
+ const url=pvpShareURL();
+ if(!url)return;
+ if(window.MATE_ANDROID && window.prompt('sudoku:share',pvp.roomCode)==='ok')return;
+ if(navigator.share){
+  try{await navigator.share({title:appText('스도쿠 친구 대결','Sudoku duel'),url});return}
+  catch(error){if(error.name==='AbortError')return}
+ }
+ const box=$('#roomShareFallback');
+ if(box){box.hidden=false;box.value=url;box.focus();box.select()}
 }
 
 const pvpLocalIdx=()=>pvp.role==='host'?0:1;
@@ -815,7 +838,7 @@ function pvpBindChannel(dc){
  dc.on('error',()=>{if(dc!==pvp.dc)return;pvpStatus('연결이 불안정합니다.')});
 }
 function pvpSend(payload){if(pvp.dc?.open){try{pvp.dc.send(JSON.stringify(payload));return true}catch(e){pvpStatus('메시지 전송에 실패했습니다.');return false}}return false}
-function pvpWatchConnection(peer){setTimeout(()=>{if(pvp.peer===peer&&pvp.conn==='connecting')pvpStatus('연결이 지연되고 있습니다. 네트워크에 따라 TURN 서버가 필요할 수 있습니다.')},16000)}
+function pvpWatchConnection(peer){setTimeout(()=>{if(pvp.peer===peer&&pvp.conn==='connecting')pvpStatus(appText('연결이 늦어지고 있어요. 두 기기의 인터넷 연결을 확인해 주세요.','Taking longer to connect. Check the internet connection on both devices.'))},16000)}
 async function pvpHostCreate(){
  if(pvp.creating||pvp.role==='host')return;
  if(!pvpReadHostSettings())return;
@@ -852,7 +875,7 @@ async function pvpGuestJoin(){
   peer.on('error',e=>{if(pvp.peer!==peer)return;pvp.creating=false;pvp.conn='disconnected';let desc=e.type==='peer-unavailable'?'해당 방을 찾지 못했습니다. 코드를 확인하세요.':String(e.type||e.message||'연결 오류');pvpStatus('입장 실패: '+desc)});
  }catch(e){pvp.creating=false;pvp.conn='disconnected';pvpStatus('입장 실패: '+e.message)}
 }
-async function pvpCopyText(text){if(!text)return notify('복사할 코드가 없습니다.');try{await navigator.clipboard.writeText(text);notify('4자리 초대 코드를 복사했습니다.')}catch(e){let el=$('#pvpRoomDisplay');if(el){let range=document.createRange();range.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(range);notify('코드를 선택했습니다. 복사해 친구에게 보내세요.')}else notify('코드를 선택해 복사하세요.')}}
+
 function pvpReceived(message){if(!message||typeof message!=='object')return;
  if(message.type==='hello'){
   pvp.peerName=String(message.name||'상대').slice(0,20);
@@ -929,7 +952,7 @@ function pvpHostMove(who,index,digit){const m=pvp.match;
   if(p.correct>=m.givens.split('').filter(c=>c==='0').length){p.done=true;p.score+=30;pvp.lastEvent='퍼즐 먼저 완성'}
  }else{
   p.mistakes=setAt(p.mistakes||EMPTY,index,String(digit));p.wrong++;const previousLives=p.lives;p.lives=Math.max(0,p.lives-1);p.score-=17;
-  pvp.lastLifeLoss={who,life:previousLives,at:now};pvp.lastEvent=`${p.name} 오답 하트 ${p.lives}개`;
+  pvp.lastLifeLoss={who,life:previousLives,at:now};pvp.lastEvent='';
  }
  p.deadline=now+m.turnMs;
  if(who===pvpOtherIdx())pvpCheckMilestones(beforeOther,p.correct);
@@ -1024,8 +1047,8 @@ function pvpAction(el){switch(el.dataset.action){
  case 'pvp-join':pvp.mode='friend';pvpGuestJoin();break;
  case 'pvp-random-start':pvpRandomStart();break;
  case 'pvp-random-cancel':appResetLobby();break;
- case 'pvp-copy-offer':pvpCopyText(pvp.roomCode);break;
- case 'pvp-share':pvpCopyShare();break;
+
+ case 'pvp-share':shareRoom();break;
  case 'pvp-start':if(pvp.mode==='random')pvpStartMatch();break;
  case 'pvp-reset':pvpLeaveMatch();break;
  case 'pvp-leave':pvpLeaveMatch();break;

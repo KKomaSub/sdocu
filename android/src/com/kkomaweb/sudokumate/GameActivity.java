@@ -2,6 +2,8 @@ package com.kkomaweb.sudokumate;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -27,8 +29,40 @@ public final class GameActivity extends Activity {
     private String requested = "off";
     private boolean foreground, reading, preferred;
 
+    private boolean pageReady;
+    private String pendingRoom;
+
+    private String inviteRoom(Intent intent) {
+        Uri uri = intent.getData();
+        if (!Intent.ACTION_VIEW.equals(intent.getAction()) || uri == null ||
+            !"https".equals(uri.getScheme()) || !"/invite".equals(uri.getPath()) ||
+            !(HOST.equals(uri.getHost()) || "스도쿠.kro.kr".equals(uri.getHost()))) return null;
+        String code = uri.getQueryParameter("room");
+        return code != null && code.matches("[0-9]{4}") ? code : null;
+    }
+
+    private void deliverInvite() {
+        if (!pageReady || pendingRoom == null) return;
+        String room = pendingRoom;
+        pendingRoom = null;
+        web.evaluateJavascript("receiveRoomInvite('" + room + "')", null);
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        state.putString("inviteRoom", pendingRoom);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String room = inviteRoom(intent);
+        if (room != null) { pendingRoom = room; deliverInvite(); }
+    }
+
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        pendingRoom = state == null ? inviteRoom(getIntent()) : state.getString("inviteRoom");
         web = new WebView(this);
         int surface = Color.rgb(244,245,250);
         FrameLayout viewport = new FrameLayout(this);
@@ -53,6 +87,10 @@ public final class GameActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageFinished(WebView view, String url) {
+                pageReady = PAGE.equals(url);
+                deliverInvite();
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) { return true; }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
                 Uri uri = req.getUrl();
@@ -70,6 +108,15 @@ public final class GameActivity extends Activity {
         });
         web.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onJsPrompt(WebView view,String url,String msg,String value,JsPromptResult result) {
+                if (PAGE.equals(url) && "sudoku:share".equals(msg) && value != null && value.matches("[0-9]{4}")) {
+                    Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain");
+                    share.putExtra(Intent.EXTRA_TEXT, "https://스도쿠.kro.kr/invite?room=" + value);
+                    try {
+                        startActivity(Intent.createChooser(share, null));
+                        result.confirm("ok");
+                    } catch (ActivityNotFoundException unavailable) { result.confirm("off"); }
+                    return true;
+                }
                 if(PAGE.equals(url) && "sudoku:reward".equals(msg)) { result.confirm(ads.request(value)?"ok":"off"); return true; }
                 if(PAGE.equals(url) && "sudoku:privacy".equals(msg)) { result.confirm(ads.privacy(value)); return true; }
                 if (!PAGE.equals(url) || !"sudoku:nfc".equals(msg)) { result.cancel(); return true; }

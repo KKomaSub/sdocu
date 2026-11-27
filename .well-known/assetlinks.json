@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kkomaweb.sudokumate",
+      "sha256_cert_fingerprints": [
+        "64:7D:60:2D:F3:E6:6A:54:D3:F5:47:C6:28:FF:75:F9:16:C2:F2:CC:9B:CE:33:56:A8:5E:A8:72:79:EB:4A:00"
+      ]
+    }
+  }
+]

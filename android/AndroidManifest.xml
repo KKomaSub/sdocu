@@ -1,12 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="7" android:versionName="1.0.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="8" android:versionName="1.0.0">
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.NFC"/>
   <uses-feature android:name="android.hardware.nfc" android:required="false"/>
   <uses-feature android:name="android.hardware.nfc.hce" android:required="false"/>
   <application android:label="스도쿠 메이트" android:icon="@drawable/mate" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:allowBackup="false" android:usesCleartextTraffic="false">
     <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3436035126711278~9578182436"/>
-    <activity android:name=".GameActivity" android:exported="true" android:configChanges="orientation|keyboardHidden|screenSize|screenLayout" android:windowSoftInputMode="adjustResize">
+    <activity android:name=".GameActivity" android:launchMode="singleTop" android:exported="true" android:configChanges="orientation|keyboardHidden|screenSize|screenLayout" android:windowSoftInputMode="adjustResize">
       <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+      <intent-filter android:autoVerify="true">
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="https" android:host="xn--hq1b25zp3j.kro.kr" android:path="/invite"/>
+      </intent-filter>
     </activity>
     <service android:name=".RoomCard" android:exported="true" android:permission="android.permission.BIND_NFC_SERVICE">
       <intent-filter><action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/></intent-filter>

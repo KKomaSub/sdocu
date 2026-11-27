@@ -21,6 +21,19 @@ for _ in $(seq 1 20); do
         adb shell input keyevent KEYCODE_HOME
         adb shell am start -W -n "$pkg/.GameActivity"
         adb shell pidof "$pkg"
+        # The emulator package uses a temporary signing key. Target its package
+        # explicitly when testing the same browsable URL on cold and warm launch.
+        adb shell am force-stop "$pkg"
+        for code in 0041 0042; do
+            adb shell am start -W -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://xn--hq1b25zp3j.kro.kr/invite?room=$code" -p "$pkg"
+            found=false
+            for attempt in $(seq 1 10); do
+                adb shell uiautomator dump /sdcard/mate-invite.xml >/dev/null 2>&1 || continue
+                adb shell cat /sdcard/mate-invite.xml > "$RUNNER_TEMP/mate-invite.xml"
+                if grep -Eq "$code|Connecting|connect|연결|room|Room|입장|찾지" "$RUNNER_TEMP/mate-invite.xml"; then found=true; break; fi
+            done
+            if ! $found; then cat "$RUNNER_TEMP/mate-invite.xml"; exit 1; fi
+        done
         exit 0
     fi
     sleep 1

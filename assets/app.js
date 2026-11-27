@@ -2,6 +2,7 @@
 
 const appText=(ko,en)=>window.SUDOKU_LANG==='en'?en:ko;
 const appIcons={
+ share:'<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.7 7.4-4.3m-7.4 7 7.4 4.3"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  home:'<path d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 21v-6h6v6"/>',
  solo:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/>',
@@ -32,6 +33,7 @@ let tapFilledCode='';
 let guideStep=0;
 let guideReturn=null;
 let pendingInvite=null;
+let inviteReady=false;
 function homeMode(key,title,detail){
  return `<button type="button" class="app-mode mode-${key}" data-app-action="${key}">
   <span class="mode-symbol">${appIcon(key)}</span>
@@ -135,10 +137,7 @@ function appCloseGuide(){
  appWrite(guideKey,'1');
  if(guideReturn instanceof HTMLElement&&guideReturn!==document.body)guideReturn.focus({preventScroll:true});
  else $('#main button')?.focus({preventScroll:true});
- if(pendingInvite){
-  pendingInvite=null;
-  pvpInviteFromURL();
- }
+ if(pendingInvite)receiveRoomInvite(pendingInvite);
 }
 
 function lobbyHeading(title){
@@ -162,9 +161,9 @@ function friendSettings(){
   '<div id="roomTeamRow" class="room-row" '+(friendSetup.players===4?'':'hidden')+'><span>'+appText('대결 방식','Match type')+'</span><div class="team-toggle" role="group" aria-label="'+appText('대결 방식','Match type')+'">'+
   '<button type="button" data-app-action="team" data-team="false" aria-pressed="'+!team+'">'+appText('개인전','Solo')+'</button>'+
   '<button type="button" data-app-action="team" data-team="true" aria-pressed="'+team+'">'+appText('2:2 팀전','2v2 teams')+'</button></div></div>'+
-  '<div class="room-row"><label for="pvpLevel">'+appText('난이도','Difficulty')+'</label><select class="text-input" id="pvpLevel">'+
+  '<div class="room-row"><label for="pvpLevel">'+appText('난이도','Difficulty')+'</label><span class="difficulty-field"><select class="text-input" id="pvpLevel">'+
    LEVELS.map(({key,name})=>'<option value="'+key+'" '+(friendSetup.level===key?'selected':'')+'>'+(window.SUDOKU_LANG==='en'?window.SUDOKU_I18N?.translate(name)??name:name)+'</option>').join('')+
-  '</select></div>'+roomStepper('roomHearts',appText('하트','Hearts'),friendSetup.hearts,1,10)+'</div>'+
+  '</select></span></div>'+roomStepper('roomHearts',appText('하트','Hearts'),friendSetup.hearts,1,10)+'</div>'+
   '<p id="roomTeamNote" class="room-note" '+(team?'':'hidden')+'>'+appText('4명이 모이면 팀을 무작위로 나눠요.','Teams are assigned randomly when all four players join.')+'</p>'+
   '<details class="room-advanced" '+(friendSetup.advanced?'open':'')+'><summary>'+appText('시간 설정','Time limits')+'</summary>'+
   '<div class="room-times"><div><label class="field-label" for="pvpTurnSeconds">'+appText('한 칸 입력 (초)','Per move (seconds)')+'</label><input type="number" class="text-input" id="pvpTurnSeconds" min="5" max="120" value="'+friendSetup.turnSeconds+'"></div>'+
@@ -186,9 +185,8 @@ function friendRoomWaiting(){
  const hasRoster=isHost||multi.active||pvp.dc?.open;
  return '<div class="lobby-card waiting-room">'+
   (isHost&&pvp.roomCode?'<span class="room-code-label">'+appText('방 번호','Room code')+'</span><strong id="pvpRoomDisplay" class="room-code">'+escapeHtml(pvp.roomCode)+'</strong>'+
-   '<div class="invite-actions">'+lobbyAction('pvp-copy-offer',appText('번호 복사','Copy code'),'secondary')+
-   lobbyAction('pvp-share',appText('초대 링크 복사','Copy invite link'),'ghost')+'</div>'+
-   '<input id="pvpShareURL" class="sr-only" tabindex="-1" aria-label="'+appText('초대 링크','Invite link')+'" value="'+escapeHtml(pvpShareURL())+'" readonly>':'')+
+   '<div class="invite-actions">'+lobbyAction('pvp-share',appIcon('share')+appText('링크 공유','Share link'),'secondary')+'</div>'+
+   '<input id="roomShareFallback" class="text-input" aria-label="'+appText('초대 링크','Invite link')+'" readonly hidden>':'')+
   (hasRoster?'<div class="room-roster"><h2>'+appText('참가자','Players')+' <span>'+players.filter(Boolean).length+' / '+capacity+'</span></h2><ul>'+
    Array.from({length:capacity},(_,i)=>'<li class="'+(players[i]?'joined':'')+'">'+appIcon('friends')+'<span>'+escapeHtml(players[i]||appText('입장 대기','Waiting to join'))+'</span></li>').join('')+
    '</ul><p class="room-note">'+appText('모두 모이면 대결이 시작돼요.','The match starts automatically when the room is full.')+'</p></div>':'')+
@@ -375,10 +373,33 @@ if(storedName)pvp.name=storedName;
 appSetupNavigation();
 render();
 window.SUDOKU_I18N?.initialize();
+function receiveRoomInvite(room){
+ if(!/^\d{4}$/.test(room))return;
+ pendingInvite=room;
+ if(!inviteReady)return;
+ pendingInvite=null;
+ if($('#appGuide').open)$('#appGuide').close();
+ if(pvp.mode==='friend' && pvp.conn!=='disconnected' &&
+    (pvp.roomCode===room || (pvp.role==='guest' && pvp.joinCode===room)))return;
+ const join=()=>{
+  if(pvp.match&&!pvp.match.finished)pvpLeaveMatch();
+  pvpConnectionClose();
+  endGameOver();endVictory();
+  pvp.mode='friend';appFriendSettingsToGame();pvp.joinCode=room;
+  finishAppNavigation('pvp');pvpGuestJoin();
+ };
+ if($('#appDialog').open)closeDialog();
+ if(pvp.role && pvp.conn!=='disconnected' && !pvp.match?.finished){
+  openDialog({title:appText('초대받은 방으로 이동할까요?','Join the invited room?'),
+   message:appText('현재 방에서 나가고 '+room+'번 방에 참가해요.','Leave this room and join room '+room+'.'),
+   confirmLabel:appText('이동','Join'),onConfirm:join});
+ }else join();
+}
 const appInvite=new URLSearchParams(location.search).get('room');
-if(/^\d{4}$/.test(appInvite||'')&&/^https?:$/.test(location.protocol))pendingInvite=appInvite;
+if(/^https?:$/.test(location.protocol)&&/^\d{4}$/.test(appInvite||''))pendingInvite=appInvite;
 requestAnimationFrame(()=>setTimeout(()=>{
  $('#appSplash').hidden=true;
- if(!appRead(guideKey))appOpenGuide();
- else if(pendingInvite){pendingInvite=null;pvpInviteFromURL()}
+ inviteReady=true;
+ if(pendingInvite)receiveRoomInvite(pendingInvite);
+ else if(!appRead(guideKey))appOpenGuide();
 },matchMedia('(prefers-reduced-motion: reduce)').matches?0:400));
