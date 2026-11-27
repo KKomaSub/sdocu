@@ -65,9 +65,7 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 .ad-dialog label{display:block;font-size:12px;font-weight:800;color:#637791;margin:14px 0 7px}
 .ad-dialog input{width:100%;padding:12px 10px;border:1px solid #cad7ea;border-radius:10px;font-size:12px;color:#284166;outline-offset:2px}
 .ad-dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}
-.ad-wait[hidden]{display:none}.ad-wait{position:fixed;inset:0;z-index:280;background:#172744cc;display:grid;place-items:center;padding:22px}
-.ad-wait-card{width:min(100%,355px);background:#fff;border-radius:20px;text-align:center;padding:24px 19px;box-shadow:0 19px 70px #142a4770}.ad-wait-card h2{font-size:18px;margin:0 0 7px;color:#273b59}.ad-wait-card p{font-size:12px;line-height:1.7;color:#7686a1}.ad-spinner{width:30px;height:30px;margin:0 auto 13px;border:3px solid #dce6fa;border-top-color:#5174dd;border-radius:50%;animation:adSpin .8s linear infinite}@keyframes adSpin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.ad-spinner{animation:none}}
+
 
 .self-video-ad[hidden]{display:none}.self-video-ad{position:fixed;inset:0;z-index:320;background:#060b17;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}.self-video-ad video{display:block;width:100%;height:100%;max-height:100vh;object-fit:contain;flex:1;min-height:0}.self-ad-top{position:absolute;top:calc(env(safe-area-inset-top) + 15px);left:15px;right:15px;display:flex;align-items:center;justify-content:space-between;z-index:3;font-size:12px;text-shadow:0 1px 5px #000a}.self-ad-close{width:37px;height:37px;border:1px solid #ffffff66;background:#162542dd;border-radius:50%;color:white;font-size:18px}.self-ad-bottom{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 15px);left:16px;right:16px;z-index:3;text-align:center;color:white;font-size:12px;text-shadow:0 2px 5px #000a;background:#15243baa;border-radius:12px;padding:10px}.self-ad-progress{height:5px;border-radius:10px;background:#ffffff55;overflow:hidden;margin-bottom:8px}.self-ad-progress>div{width:0;height:100%;background:#9bc6ff;transition:width .16s linear}.self-ad-disclaimer{font-size:10px;color:#e2ebfd;margin-top:6px}.ad-offer[hidden]{display:none}
 /* WebRTC peer-to-peer multiplayer — independent of existing single-player game */
@@ -153,8 +151,21 @@ dialog{border:1px solid #dfe8f5;background:#fff;padding:22px;border-radius:18px;
 </div>
 <div id="gameOver" class="gameover" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
  <div class="gameover-card"><div class="result-scene" aria-hidden="true">
-  <svg class="result-art" viewBox="0 0 96 96" fill="none" stroke-linecap="round" stroke-linejoin="round" focusable="false"><g class="heart-piece heart-left"><path fill="#e85070" d="M48 75 20 49C1 30 27 7 44 25l4 5-7 14 9 4-7 11z"/><path d="M20 35c0-7 5-11 11-11" stroke="#ffb3be" stroke-width="4"/></g>
-    <g class="heart-piece heart-right"><path fill="#b32f58" d="m48 75-5-16 7-11-9-4 7-14 4-5C69 7 95 30 76 49z"/><path d="m68 49-11 10" stroke="#d7496e" stroke-width="4"/></g></svg>
+  <svg class="result-art" viewBox="0 0 96 96" fill="none" aria-hidden="true" focusable="false">
+   <defs>
+    <linearGradient id="heartRose" x1="0" y1="0" x2=".7" y2="1" gradientUnits="objectBoundingBox">
+     <stop stop-color="#fa8290"/><stop offset=".55" stop-color="#e65371"/><stop offset="1" stop-color="#c6385b"/>
+    </linearGradient>
+   </defs>
+   <g class="heart-piece heart-left">
+    <path fill="url(#heartRose)" d="M48 30C37 12 15 15 12 34C9 51 28 66 48 81L43 60L50 49L42 44Z"/>
+    <path d="M20 35c1-7 6-11 12-11" stroke="#ffdce0" stroke-width="3.5" stroke-linecap="round"/>
+   </g>
+   <g class="heart-piece heart-right">
+    <path fill="url(#heartRose)" d="M48 30C59 12 81 15 84 34C87 51 68 66 48 81L43 60L50 49L42 44Z"/>
+    <path d="m48 32-5 12 8 5-7 12 4 15" stroke="#ffe3e8" stroke-opacity=".65" stroke-width="1.5" stroke-linejoin="round"/>
+   </g>
+  </svg>
 </div>
   <h2 id="gameOverTitle">하트를 모두 썼어요</h2>
   <div class="result-time"><span>풀이 시간</span><strong id="gameOverTime"></strong></div>
@@ -292,13 +303,16 @@ function switchView(view){
  if(state.view==='pvp'&&view!=='pvp')pvpConnectionClose();
  finishAppNavigation(view);
 }
+function prepareTimeAttack(id,mode){
+ if(mode==='time'&&runOf(id)?.status==='lost')delete state.timeAttackRuns[id];
+}
 function finishAppNavigation(view){
+ if(view==='play'&&state.view!=='play')prepareTimeAttack(state.activeId,state.playMode);
  hintPreview=null;
  state.view=view;
  persist();
  render();
  syncTapRoom();
- if(view==='play'&&timeMode()&&runOf(state.activeId)?.status==='lost')showGameOver();
  window.scrollTo({top:0,behavior:'auto'});
  $('#main').focus({preventScroll:true});
 }
@@ -306,6 +320,7 @@ function openGame(id,mode=DEFAULT_PLAY_MODE){
  const puz=getPuzzle(id);if(!puz){notify('문제를 찾을 수 없습니다.');return}
  if(state.view==='pvp')pvpConnectionClose();
  hintPreview=null;
+ prepareTimeAttack(id,mode);
  state.activeId=id;state.view='play';state.playMode=mode;
  state.selected=Math.max(0,puz.givens.indexOf('0'));
  persist();render();window.scrollTo({top:0,behavior:'auto'});
@@ -379,6 +394,7 @@ function switchPlayMode(mode){
  if(mode===state.playMode)return;
  const id=state.activeId,run=runOf(id);
  function applyMode(){
+  prepareTimeAttack(id,mode);
   state.playMode=mode;
   checkpointClocks();
   hintPreview=null;
@@ -601,16 +617,19 @@ function catalogCardsHtml(){let filtered=LEVELS.filter(l=>state.filter==='all'||
  const id=makeId(n),practice=state.progress[id],best=state.timeAttackBests[id];
  const solved=state.history.some(x=>x.id===id);
  const practicing=practice&&!practice.done&&(practice.answers!==EMPTY||Object.keys(practice.notes||{}).length>0);
- const started=runOf(id)?.status==='running'||practicing;
- const style=started?'in-progress':best?'time-cleared':solved?'solved':'';
- const label=started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':runOf(id)?.status==='lost'?'':'시작 전';
- return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
+ const status=runOf(id)?.status;
+ const fresh=status==='lost';
+ const started=status==='running'||practicing;
+ const style=fresh?'':started?'in-progress':best?'time-cleared':solved?'solved':'';
+ const label=fresh?'시작 전':started?'● 진행 중':best?'타임어택 완료':solved?'✓ 완료':'시작 전';
+ return `<button class="number-card ${style} ${state.activeId===id?'selected':''}" data-action="open-game" data-id="${id}"><b>${pad3(n)}</b><small>${label}${best&&!fresh?`<br>${formatElapsed(best.bestMs)}`:''}</small></button>`;
 }).join('')}
 function renderCatalog(){const solved=completedBuiltinCount();$('#main').innerHTML=`<section class="panel"><div class="section-header"><div><h1 class="panel-title">문제 선택</h1><p class="panel-subtitle catalog-completed">${appIcon('check')}${completedCaption(solved)}</p></div><button class="secondary compact" data-action="return-play">이어 풀기</button>${guideButton()}</div><div class="filters">${[{key:'all',name:'전체'},...LEVELS.map(l=>({key:l.key,name:l.name}))].map(l=>`<button class="filter ${state.filter===l.key?'active':''}" data-action="filter" data-filter="${l.key}">${l.name}</button>`).join('')}</div><label class="searchbar">${iconSearch}<input type="search" id="catalogSearch" inputmode="numeric" placeholder="문제 번호 검색 (예: 125)" value="${escapeHtml(catalogQuery)}" autocomplete="off" aria-label="문제 번호 검색"></label><div id="catalogCards" class="card-grid">${catalogCardsHtml()}</div></section>`}
 function renderCatalogCards(){let elem=$('#catalogCards');if(elem)elem.innerHTML=catalogCardsHtml()}
 function customProgressLabel(p){
+ if(runOf(p.id)?.status==='lost')return '시작 전';
  if(runOf(p.id)?.status==='running')return appText('진행 중','In progress');
- let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return runOf(p.id)?.status==='lost'?'':'시작 전'}
+ let pr=state.progress[p.id],done=state.history.some(x=>x.id===p.id);if(done)return '✓ 완료';if(pr&&(pr.answers!==EMPTY||Object.keys(pr.notes||{}).length))return '진행 중';return '시작 전'}
 function renderCustom(){let saved=[...state.custom].sort((a,b)=>b.updatedAt-a.updatedAt);$('#main').innerHTML=`<section class="panel"><div class="section-header custom-header"><h1 class="panel-title">내 스도쿠</h1><button class="primary compact create-puzzle" type="button" data-action="new-custom">${appIcon('plus')}<span>${appText('만들기','Create')}</span></button>${guideButton()}</div>${state.editor?`<div class="notice" style="margin:0 0 15px">만들던 문제가 있어요. <button class="secondary compact" data-action="resume-editor">편집 이어하기</button></div>`:''}<div class="custom-list">${saved.length?saved.map(p=>`<article class="custom-card"><div class="custom-head"><div><h3 class="custom-title">${escapeHtml(p.name)}</h3><p class="custom-sub">고정 숫자 ${p.givens.split('').filter(x=>x!=='0').length}개   ${customProgressLabel(p)}<br>마지막 수정 ${dateDisplay(p.updatedAt)}</p></div><span class="chip custom">내 문제</span></div><div class="custom-actions"><button class="secondary compact" data-action="open-game" data-id="${escapeHtml(p.id)}">풀기</button><button class="ghost compact" data-action="rename-custom" data-id="${escapeHtml(p.id)}">이름 변경</button><button class="ghost compact" data-action="edit-custom" data-id="${escapeHtml(p.id)}">문제 수정</button><button class="danger compact" data-action="delete-custom" data-id="${escapeHtml(p.id)}">삭제</button></div></article>`).join(''):`<div class="empty">${appIcon('solo')}<strong>${appText('아직 만든 문제가 없어요','No puzzles yet')}</strong>${appText('직접 만든 스도쿠가 여기에 모여요.','Your own puzzles will appear here.')}</div>`}</div></section>`}
 function historyAccordion(key,title,total,content,isOpen=false){return `<section class="history-section ${isOpen?'open':''}" data-history-section="${key}"><button type="button" class="history-heading" data-action="history-toggle" aria-expanded="${isOpen}" aria-controls="history-body-${key}"><span class="history-heading-title">${title}</span><span class="history-count">${total}</span><svg viewBox="0 0 24 24" class="history-chevron" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div class="history-collapsible" id="history-body-${key}"><div class="history-collapsible-inner">${content}</div></div></section>`}
 function historyToggle(button){const section=button.closest('.history-section');if(!section)return;const open=!section.classList.contains('open');section.classList.toggle('open',open);button.setAttribute('aria-expanded',String(open))}

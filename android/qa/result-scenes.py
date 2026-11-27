@@ -73,7 +73,9 @@ for(let i=0;i<3;i++)loseTimeAttackLife(3);
 check(loadState().timeAttackRuns.b002.status==='lost','zero hearts persists failure');
 const cards=document.createElement('div');cards.innerHTML=catalogCardsHtml();
 const card=id=>cards.querySelector('[data-id="'+id+'"]');
-check(!card('b002').textContent.includes('실패') && card('b002').classList.contains('in-progress'),'preserve independent practice progress');
+check(card('b002').querySelector('small').textContent==='시작 전' && !card('b002').classList.contains('in-progress'),'lost run gets a fresh catalog card');
+check(customProgressLabel({id:'b002'})==='시작 전','custom list handles a lost attempt');
+check(state.progress.b002.notes[3]===64,'practice notes survive the loss');
 check(!document.querySelector('#toast').classList.contains('visible'),'no wrong-answer toast');
 check(card('b003').classList.contains('in-progress') && card('b004').querySelector('small').textContent==='시작 전','running and unstarted remain distinct');
 delete performance.now;
@@ -83,20 +85,32 @@ check(document.querySelector('#gameOverTime').textContent.includes('45'),'elapse
 const rewardButton=document.querySelector('#reviveAdBtn');
 const inlineReward=document.querySelector('[data-ad-slot="board"]');
 window.prompt=(msg)=>msg==='sudoku:reward'?'ok':'';
+function centeredLoader(button){
+ const middle=(r,axis)=>axis==='y'?r.top+r.height/2:r.left+r.width/2;
+ const box=button.getBoundingClientRect(),icon=button.querySelector('.ad-spinner').getBoundingClientRect(),label=button.querySelector('span').getBoundingClientRect();
+ check(box.height>0 && Math.abs(middle(box,'y')-middle(icon,'y'))<1.5 && Math.abs(middle(label,'y')-middle(icon,'y'))<1.5,'vertical spinner alignment '+button.dataset.adSlot);
+ check(Math.abs((icon.left+label.right)/2-middle(box,'x'))<1.5,'horizontal loader alignment '+button.dataset.adSlot);
+}
 rewardButton.click();
+centeredLoader(rewardButton);
 check(rewardButton.disabled && rewardButton.querySelector('.ad-spinner') && !inlineReward.disabled,'load on tapped modal button');
 mateAdResult(nativeAd.token,'closed');
 check(!rewardButton.disabled && !rewardButton.querySelector('.ad-spinner'),'restore cancelled reward');
 endGameOver();
 inlineReward.click();
 renderPlay();
+centeredLoader(document.querySelector('[data-ad-slot="board"]'));
 check(document.querySelector('[data-ad-slot="board"]').disabled && !rewardButton.disabled,'inline reward survives re-render');
 mateAdResult(nativeAd.token,'earned');
 check(runOf('b002').lives===1,'revive rewarded');
 runOf('b002').hintsUsed=MAX_HINTS;renderPlay();
 const hint=document.querySelector('[data-action="ad-hint"]');
-hint.click();check(hint.disabled && hint.querySelector('.ad-spinner'),'hint loading on tapped button');
+hint.click();centeredLoader(hint);check(hint.disabled && hint.querySelector('.ad-spinner'),'hint loading on tapped button');
 mateAdResult(nativeAd.token,'unavailable');check(!hint.disabled,'hint re-enabled on failure');
+loseTimeAttackLife(3);
+switchView('catalog');openGame('b002');
+check(!runOf('b002') && document.querySelector('[data-action="time-start"]') && !document.querySelector('[data-ad-slot="board"]'),'reopen lost attempt at start');
+check(state.progress.b002.notes[3]===64,'new time attack preserves practice');
 pvp.role='host';
 for(const [winner,kind,part,animation] of [[1,'lose','.flag-cloth','finish-unfurl'],[0,'win','.medal-face','medal-land'],[null,'tie','.tie-first','rings-meet']]){
  pvp.match={id:kind,finished:true,winner,players:[{lives:1,score:6},{lives:1,score:4}]};
