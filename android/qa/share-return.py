@@ -47,7 +47,7 @@ def run(*args):
     return subprocess.check_output([str(arg) for arg in args], text=True, stderr=subprocess.STDOUT)
 def adb(*args):
     return run('adb', *args)
-def wait_for_node(predicate, tap=False):
+def wait_for_node(predicate, tap=False, expand=False):
     deadline = time.monotonic() + 40
     while time.monotonic() < deadline:
         adb('shell', 'uiautomator', 'dump', '/sdcard/share-ui.xml')
@@ -59,6 +59,10 @@ def wait_for_node(predicate, tap=False):
                     x1,y1,x2,y2 = map(int,re.findall(r'\d+',node.get('bounds')))
                     adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
                 return label
+        if expand:
+            size=adb('shell','wm','size')
+            w,h=map(int,re.findall(r'(\d+)x(\d+)',size)[-1])
+            adb('shell','input','swipe',str(w//2),str(h*82//100),str(w//2),str(h//5),'350')
         time.sleep(.5)
     raise AssertionError('Expected share UI missing: '+adb('shell','cat','/sdcard/share-ui.xml')[:16000])
 
@@ -92,14 +96,16 @@ with tempfile.TemporaryDirectory() as temp:
     adb('shell','am','start','-W','-n',pkg+'/.GameActivity')
     code=wait_for_node(lambda text: re.fullmatch(r'\d{4}',text))
     wait_for_node(lambda text: text in ('Share link','링크 공유'),tap=True)
-    wait_for_node(lambda text: 'Mate Share Test' in text,tap=True)
+    # Some system images show only suggested apps in the collapsed sheet.
+    target=wait_for_node(lambda text: text in ('Messages','Mate Share Test'),tap=True,expand=True)
+    target_packages=(receiver,) if target=='Mate Share Test' else ('com.google.android.apps.messaging','com.android.mms')
     for _ in range(20):
         activities=adb('shell','dumpsys','activity','activities')
-        if any(receiver in line for line in activities.splitlines() if 'ResumedActivity' in line or 'topResumedActivity' in line):
+        if any(any(name in line for name in target_packages) for line in activities.splitlines() if 'resumedactivity' in line.lower()):
             break
         time.sleep(.3)
     else:
-        raise AssertionError('Share target did not open')
+        raise AssertionError('Share target did not open: '+str([line for line in activities.splitlines() if 'resumed' in line.lower()][:8]))
     adb('shell','input','keyevent','KEYCODE_BACK')
     wait_for_node(lambda text: text==code)
     wait_for_node(lambda text: text in ('Share link','링크 공유'))
