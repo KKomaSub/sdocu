@@ -478,3 +478,5 @@ body[data-app-view="catalog"] .filter.active { background:#fff; color:var(--acce
  .difficulty-field select,.step-button { transition:background-color .14s,border-color .14s; }
  .step-button:active:not(:disabled) { background:var(--soft); }
 }
+
+[data-history-list] > .history-more { margin-top:8px; }
