@@ -67,17 +67,7 @@ async function multiCreateRoom(){
  pvpStatus(multiT('방 생성 중','Creating room...'));
  try{
   const Peer=await pvpLoadPeerJS();if(!multi.active||!multi.host||!pvp.creating)return;
-  let count=0;
-  const attempt=()=>{
-   if(!multi.active||!multi.host||!pvp.creating)return;
-   if(++count>8){pvp.creating=false;pvpStatus(multiT('방 생성 실패','Room creation failed'));return}
-   const code=pvpNewCode(),peer=new Peer(PVP_ID_PREFIX+code,{config:{iceServers:PVP_ICE_SERVERS}});
-   pvp.peer=peer;
-   peer.on('open',()=>{if(pvp.peer!==peer)return;pvp.roomCode=code;pvp.creating=false;multiLobby()});
-   peer.on('connection',dc=>{if(peer!==pvp.peer){dc.close();return}multiHostChannel(dc)});
-   peer.on('error',e=>{if(peer!==pvp.peer)return;if(e.type==='unavailable-id'){peer.destroy();pvp.peer=null;attempt();return}pvp.creating=false;pvp.conn='disconnected';pvpStatus(multiT('방을 만들 수 없습니다.','Unable to create room.'))});
-  };
-  attempt();
+  registerFriendRoom(Peer,multiLobby,multiHostChannel);
  }catch(e){pvp.creating=false;pvp.conn='disconnected';pvpStatus(multiT('연결 준비에 실패했습니다.','Connection preparation failed.'))}
 }
 function multiSnapshot(event='',hit=null){

@@ -34,6 +34,7 @@ for _ in $(seq 1 20); do
             done
             if ! $found; then cat "$RUNNER_TEMP/mate-invite.xml"; exit 1; fi
         done
+        python3 android/qa/share-return.py "$apk"
         exit 0
     fi
     sleep 1

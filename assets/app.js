@@ -56,7 +56,7 @@ function guideButton(){
  return `<button type="button" class="icon-button help-button" data-app-action="guide" aria-label="${label}" title="${label}">${appIcon('help')}</button>`;
 }
 function completedBuiltinCount(){
- return new Set(state.history.filter(item=>getPuzzle(item.id)?.builtin).map(item=>item.id)).size;
+ return completedPuzzles().filter(item=>getPuzzle(item.id)?.builtin).length;
 }
 function completedCaption(count){
  return appText(`${count}문제 완료`,`${count} ${count===1?'puzzle':'puzzles'} completed`);

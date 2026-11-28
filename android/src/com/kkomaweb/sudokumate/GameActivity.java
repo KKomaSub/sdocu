@@ -29,7 +29,7 @@ public final class GameActivity extends Activity {
     private String requested = "off";
     private boolean foreground, reading, preferred;
 
-    private boolean pageReady;
+    private boolean pageReady, sharingRoom;
     private String pendingRoom;
 
     private String inviteRoom(Intent intent) {
@@ -112,9 +112,10 @@ public final class GameActivity extends Activity {
                     Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain");
                     share.putExtra(Intent.EXTRA_TEXT, "https://스도쿠.kro.kr/invite?room=" + value);
                     try {
+                        sharingRoom = true;
                         startActivity(Intent.createChooser(share, null));
                         result.confirm("ok");
-                    } catch (ActivityNotFoundException unavailable) { result.confirm("off"); }
+                    } catch (ActivityNotFoundException unavailable) { sharingRoom = false; result.confirm("off"); }
                     return true;
                 }
                 if(PAGE.equals(url) && "sudoku:reward".equals(msg)) { result.confirm(ads.request(value)?"ok":"off"); return true; }
@@ -169,8 +170,8 @@ public final class GameActivity extends Activity {
         finally { try {card.close();} catch(IOException ignored) {} }
     }
 
-    @Override protected void onResume() { super.onResume(); foreground=true; web.onResume(); web.evaluateJavascript("window.mateForeground && mateForeground(true)",null); applyMode(); }
-    @Override protected void onPause() { foreground=false; web.evaluateJavascript("window.mateForeground && mateForeground(false)",null); applyMode(); web.onPause(); super.onPause(); }
+    @Override protected void onResume() { super.onResume(); foreground=true; sharingRoom=false; web.onResume(); web.evaluateJavascript("window.mateForeground && mateForeground(true)",null); applyMode(); }
+    @Override protected void onPause() { foreground=false; web.evaluateJavascript("window.mateForeground && mateForeground(false)",null); applyMode(); if (!sharingRoom) web.onPause(); super.onPause(); }
     @Override protected void onDestroy() { web.destroy(); super.onDestroy(); }
     @Override public void onBackPressed() {
         web.evaluateJavascript("typeof mateBack==='function' && mateBack()",handled->{

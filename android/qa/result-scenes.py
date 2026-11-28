@@ -10,11 +10,17 @@ const check=(value,message)=>{if(!value)throw Error(message)};
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 check(reduced===REDUCED,'motion preference');
 state.history=[{id:'b001'},{id:'b001'},{id:'b002'}];
+state.timeAttackBests={b001:{bestMs:4000,at:20},b004:{bestMs:3000,at:30}};
 window.SUDOKU_LANG='ko';
 renderHome();
-check(document.querySelector('.solo-stats small').textContent==='2문제 완료','home count');
+check(document.querySelector('.solo-stats small').textContent==='3문제 완료','home count');
 state.view='catalog';render();
-check(document.querySelector('.catalog-completed').textContent==='2문제 완료','catalog count');
+check(document.querySelector('.catalog-completed').textContent==='3문제 완료','catalog count');
+state.view='history';render();
+const completedList=document.querySelector('#history-body-completed');
+check(completedList.querySelectorAll('article').length===3,'count each solved puzzle once');
+check(completedList.querySelector('[data-id="b004"]').dataset.mode==='time','time-only completion opens in its mode');
+delete state.timeAttackBests.b004;
 function scene(id,symbol,animation){
  const card=document.querySelector(id);
  const art=card.querySelector(symbol);
@@ -135,6 +141,27 @@ let shared='';
 window.prompt=(msg,value)=>{if(msg==='sudoku:share')shared=value;return 'ok'};
 document.querySelector('[data-action="pvp-share"]').click();
 check(shared==='0007' && pvpShareURL().endsWith('/invite?room=0007'),'open native share with hosted room');
+pvpConnectionClose();
+pvp.role='host';pvp.mode='friend';
+multi.active=true;multi.host=true;multi.format='solo4';multi.names=['Host','Guest'];
+const member={open:true,send(){},close(){this.open=false}};
+multi.channels.set(1,member);
+class FakePeer {
+ constructor(id){this.id=id;this.handlers={};this.retries=0}
+ on(name,fn){this.handlers[name]=fn}
+ reconnect(){this.retries++;this.disconnected=false;this.open=true;this.handlers.open()}
+ destroy(){this.destroyed=true}
+}
+registerFriendRoom(FakePeer,multiLobby,multiHostChannel);
+const peer=pvp.peer;peer.open=true;peer.handlers.open();
+const published=pvp.roomCode;
+peer.open=false;peer.disconnected=true;peer.handlers.error({type:'network'});peer.handlers.disconnected();
+mateForeground(true);
+check(peer.retries===1 && pvp.roomCode===published && pvp.conn==='waiting','resume same room ID');
+check(multi.channels.get(1)===member && member.open && multi.names[1]==='Guest','retain joined players');
+mateForeground(true);check(peer.retries===1,'ignore duplicate foreground');
+pvpConnectionClose();peer.handlers.disconnected();mateForeground(true);
+check(!pvp.peer && peer.retries===1,'closed room stays closed');
 """
 with tempfile.TemporaryDirectory() as temp:
     root = Path(temp)
